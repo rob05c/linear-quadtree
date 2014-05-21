@@ -1,6 +1,9 @@
 #include "lqt.h"
 #include <iostream>
 #include <cmath>
+#include <cstring>
+#include <iomanip>
+#include <algorithm>
 
 namespace {
 using std::cout;
@@ -9,12 +12,23 @@ using std::endl;
 
 namespace linear_quadtree {
 
+/* 
+ * Turn an array of points into an unsorted quadtree of nodes.
+ * You'll probably want to call sortify() to sort the list into a
+ * useful quadtree.
+ *
+ * @param[out] depth the depth of the quadtree. This is important for
+ *             a linear quadtree, as it signifies the number of
+ *             identifying bit-pairs preceding the node
+ *
+ * @return a new array representing the unsorted nodes of the quadtree.
+ */
 char* nodify(point* points, size_t len, 
              ord_t xstart, ord_t xend, 
              ord_t ystart, ord_t yend,
              size_t* depth) {
   // depth must evenly divide 4
-  *depth = 8; ///< @todo dynamically calculate depth
+  *depth = sizeof(ord_t) * 8;
   const size_t locationLen = ceil(*depth / 4ul);
   const size_t pointLen = sizeof(ord_t) + sizeof(ord_t) + sizeof(key_t);
   const size_t fullPointLen = locationLen + pointLen;
@@ -103,6 +117,88 @@ char* nodify(point* points, size_t len,
   return array;
 }
 
+/*
+ * Sort an unsorted linear quadtree. Unsorted linear quadtrees aren't
+ * very useful.
+ * 
+ * Currently uses bubblesort, because I'm lazy. This implementation is
+ * primarily a test to be ported to a GPU. Hence, I don't really care
+ * how it's sorted. It would be trivial to change this to Mergesort.
+ *
+ * @param array unsorted linear quadtree
+ * @param len   number of points in the quadtree
+ * @param depth depth of the quadtree. 
+ */
+void sortify(char* array, const size_t len, const size_t depth) {
+//  cout << "SORTIFY" << endl << "-------" << endl;
+  const size_t locationLen = ceil(depth / 4ul);
+  const size_t pointLen = sizeof(ord_t) + sizeof(ord_t) + sizeof(key_t);
+  const size_t fullPointLen = locationLen + pointLen;
+/* debug
+  cout << "fullPointLen: " << fullPointLen << endl;
+  cout << "len(numPoints): " << len << endl;
+  cout << "full array length: " << len * fullPointLen << endl;
+*/
+
+  typedef unsigned int sort_t;
+  const size_t charsPerSortT = sizeof(sort_t);
+  const size_t sortDepths = ceil((depth / 4) / (double)sizeof(sort_t));
+
+  bool swapped = true;
+  while(swapped) { // bubble sort - will iterate a maximum of n times
+//    cout << "WHILE LOOP" << endl;
+    swapped = false;
+    for(size_t i = 0, end = len * fullPointLen; i < end; i += fullPointLen) { //must be < not !=
+//      cout << "POINT LOOP " << i << endl;
+      if(i + fullPointLen >= len * fullPointLen)
+        break; // last point
+
+      char* point = &array[i];
+//      cout << "nextPointPos: " << i + fullPointLen << endl;
+      char* nextPoint = &array[i + fullPointLen];
+
+      for(size_t j = 0, jend = sortDepths; j < jend; j += charsPerSortT) { // must be < not !=
+        const sort_t key = point[j];
+        const sort_t nextKey = nextPoint[j];
+//        cout << "KEY: " << key << " NEXTKEY: " << nextKey << endl;
+        if(key < nextKey)
+          break;
+        if(key > nextKey) {
+          swapify(point, nextPoint, depth);
+          swapped = true;
+          break;
+        }
+        // keys are equal - loop into next depth
+//        cout << "KEY LOOPING" << endl;
+      }
+    }
+
+  }
+}
+
+/*
+ * swap the memory of the given quadtree points
+ */
+void swapify(char* firstPoint, char* secondPoint, const size_t depth) {
+//  cout << "SWAPPING" << endl;
+  const size_t locationLen = ceil(depth / 4ul);
+  const size_t pointLen = sizeof(ord_t) + sizeof(ord_t) + sizeof(key_t);
+  const size_t fullPointLen = locationLen + pointLen;
+
+  char* temp = new char[fullPointLen];
+  memcpy(temp, firstPoint, fullPointLen);
+  memcpy(firstPoint, secondPoint, fullPointLen);
+  memcpy(secondPoint, temp, fullPointLen);
+//  cout << "--SWAPIFY-- deleting temp...";
+  delete[] temp;
+//  cout << "deleted." << endl;
+}
+
+/*
+ * print out a quadtree node
+ * @param depth the quadtree depth. Necessary, because it indicates
+ *              the number of position bit-pairs
+ */
 void printNode(char* node, const size_t depth) {
   const size_t locationLen = ceil(depth / 4ul);
   const size_t pointLen = sizeof(ord_t) + sizeof(ord_t) + sizeof(key_t);
@@ -129,7 +225,6 @@ void printNode(char* node, const size_t depth) {
   const size_t pointYPos = pointXPos + sizeof(ord_t);
   const size_t keyPos = pointYPos + sizeof(ord_t);
 
-
 /*
   cout << endl << "locationLen: " << locationLen << endl;
   cout << endl << "pointLen: " << pointLen << endl;
@@ -143,9 +238,16 @@ void printNode(char* node, const size_t depth) {
   const ord_t* arrayPointY = (ord_t*)&node[pointYPos];
   const key_t* arrayPointKey = (key_t*)&node[keyPos];
 
+  cout << std::fixed << std::setprecision(15);
   cout << *arrayPointX << "\t" << *arrayPointY << "\t" << *arrayPointKey << endl;
 }
 
+/* 
+ * print out all the nodes in a linear quadtree
+ * @param array the linear quadtree
+ * @param len the number of nodes in the quadtree
+ * @param depth the depth of the quadtree.
+ */
 void printNodes(char* array, const size_t len, const size_t depth) {
   const size_t locationLen = ceil(depth / 4ul);
   const size_t pointLen = sizeof(ord_t) + sizeof(ord_t) + sizeof(key_t);
@@ -157,7 +259,7 @@ void printNodes(char* array, const size_t len, const size_t depth) {
   }
 
   cout << "x\ty\tkey" << endl;
-  for(size_t i = 0, end = len; i < end; i += fullPointLen) {
+  for(size_t i = 0, end = len; i < end; i += fullPointLen) { // must be < not !=
     printNode(&array[i], depth);
   }
   cout << endl;
