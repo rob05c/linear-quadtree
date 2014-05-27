@@ -65,13 +65,10 @@ unsigned char* nodify(point* points, size_t len,
       const size_t bit2 = thisPoint->x > (currentXStart + (currentXEnd - currentXStart) / 2);
       const size_t currentPosBits = (bit1 << 1) | bit2;
 
-//      cout << "j/4 " << j/4 << endl;
-//      cout << "endianswap " << ENDIANSWAP(j/4) << endl;
-//      cout << "arrayval " << pointPos + ENDIANSWAP(j/4) << endl;
-//      cout << "prevArrayVal " << pointPos + j/4 << endl;
-
-      size_t ebyte = j / 4;
-//      ebyte = (ebyte / 4 * 4) + ENDIANSWAP(ebyte % 4);
+      const size_t byte = j / 4;
+      const size_t ebyte = byte / 4 * 4 + ENDIANSWAP(byte % 4);
+      // @note it may be more efficient to create the node, and then loop and 
+      //       use an intrinsic, e.g. __builtin_bswap32(pointAsNum[j]). Intrinsics are fast.
 
       thisArrayPoint[ebyte] = (thisArrayPoint[ebyte] << bitsPerLocation) | currentPosBits;
       
@@ -138,8 +135,9 @@ void sortify(unsigned char* array, const size_t len, const size_t depth) {
       for(size_t j = 0, jend = sortDepths; j < jend; ++j) { // must be < not !=
 //        const sort_t key = *((unsigned int*)&point[j]);
 //        const sort_t nextKey = *((unsigned int*)&nextPoint[j]);
-        const sort_t key = __builtin_bswap32(pointAsNum[j]);
-        const sort_t nextKey = __builtin_bswap32(nextPointAsNum[j]);
+//        const sort_t key = __builtin_bswap32(pointAsNum[j]);
+        const sort_t key = pointAsNum[j];
+        const sort_t nextKey = nextPointAsNum[j];
         if(key < nextKey)
           break;
         if(key > nextKey) {
@@ -218,7 +216,7 @@ void printNode(unsigned char* node, const size_t depth, const bool verbose) {
   if(verbose)
   {
     for(size_t j = 0, jend = sortDepths; j < jend; ++j) { // must be <
-      const sort_t key = __builtin_bswap32(pointAsNum[j]);
+      const sort_t key = pointAsNum[j];
       cout << key << " ";
     }
   }
@@ -273,7 +271,7 @@ void printNodes(unsigned char* array, const size_t len, const size_t depth, cons
 
   cout << "x\ty\tkey" << endl;
   for(size_t i = 0, end = len; i < end; i += fullPointLen) { // must be < not !=
-    printNode(&array[i], depth, false);
+    printNode(&array[i], depth, verbose);
   }
   cout << endl;
 }

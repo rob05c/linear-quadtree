@@ -70,6 +70,7 @@ void test1() {
 }
 
 void teste() {
+  cout << "TESTE" << endl;
   typedef unsigned long ulong;
   typedef unsigned char uchar;
   typedef unsigned long sort_t;
@@ -122,7 +123,7 @@ void test2() {
 //  cout << "sorting..." << endl;
 //  sortify(unsortedQuadtree, sizeof(points) / sizeof(point), depth);
   cout << endl << "done" << endl;
-  printNodes(unsortedQuadtree, sizeof(points), depth, false);
+  printNodes(unsortedQuadtree, sizeof(points), depth, true);
 }
 
 }
@@ -130,7 +131,7 @@ void test2() {
 int main() {
   srand(time(NULL));
 
-  test1();
+  test2();
 
   return 0;
 }
