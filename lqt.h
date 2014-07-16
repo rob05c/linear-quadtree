@@ -1,8 +1,6 @@
 #ifndef lqtH
-
-#include <bitset>
-
-namespace linear_quadtree {
+#include <stdlib.h>
+#include <stdbool.h>
 
 typedef int key_t;
 typedef float ord_t; // ordinate. There's only one, so it's not a coordinate.
@@ -12,7 +10,7 @@ struct point {
   key_t key;
 };
 
-unsigned char* nodify(point* points, size_t len, 
+unsigned char* nodify(struct point* points, size_t len, 
              ord_t xstart, ord_t xend, 
              ord_t ystart, ord_t yend,
              size_t* depth);
@@ -23,5 +21,4 @@ void swapify(unsigned char* firstPoint, unsigned char* secondPoint, const size_t
 void printNode(unsigned char* node, const size_t depth, const bool verbose);
 void printNodes(unsigned char* array, const size_t len, const size_t depth, const bool verbose);
 
-} // namespace linear_quadtree
 #endif

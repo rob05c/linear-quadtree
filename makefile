@@ -1,9 +1,9 @@
-CC=g++
+CC=c99
 all: lqt.o main.o
-	$(CC) -g main.o lqt.o -o lqt
+	$(CC) -g main.o lqt.o -o lqt -lm
 main.o: 
-	g++ -c main.cpp -o main.o
+	$(CC) -c main.c -o main.o
 lqt.o:
-	g++ -c lqt.cpp -o lqt.o
+	$(CC) -c lqt.c -o lqt.o
 clean:
 	rm -f *o lqt

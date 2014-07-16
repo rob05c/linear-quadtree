@@ -1,12 +1,7 @@
-#include <iostream>
-#include <cstdlib>
 #include "lqt.h"
-
-namespace {
-using std::cout;
-using std::endl;
-namespace lqt = linear_quadtree;
-using namespace linear_quadtree; //debug
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 
 // generate a uniform random between min and max exclusive
 ord_t uniformFrand(ord_t min, ord_t max) {
@@ -44,33 +39,33 @@ void debug_testEndian() {
 
   unsigned int* iarray = (unsigned int*)array;
 //  unsigned int endian = (array[0] << 24) | (array[1] << 16) | (array[2] << 8) | array[3];
-  cout << "endian: " << *iarray << endl;
+  printf("endian: %u\n", *iarray);
 }
 
 void test1() {
-  cout << "TEST1" << endl;
-  point points[10000];
+  printf("TEST1\n");
+  struct point points[10000];
   const size_t min = 1000;
   const size_t max = 1100;
-  cout << "creating points..." << endl;
-  for(int i = 0, end = sizeof(points) / sizeof(point); i != end; ++i) {
+  printf("creating points...\n");
+  for(int i = 0, end = sizeof(points) / sizeof(struct point); i != end; ++i) {
     points[i].x = uniformFrand(min, max);
     points[i].y = uniformFrand(min, max);
     points[i].key = i;
   }
 
-  cout << "creating nodes..." << endl;
+  printf("creating nodes...\n");
   size_t depth;
-  unsigned char* unsortedQuadtree = nodify(points, sizeof(points) / sizeof(point), 
+  unsigned char* unsortedQuadtree = nodify(points, sizeof(points) / sizeof(struct point), 
                                   min, max, min, max, &depth);
-  cout << "sorting..." << endl;
-  sortify(unsortedQuadtree, sizeof(points) / sizeof(point), depth);
-  cout << endl << "done" << endl;
+  printf("sorting...\n");
+  sortify(unsortedQuadtree, sizeof(points) / sizeof(struct point), depth);
+  printf("\ndone\n");
   printNodes(unsortedQuadtree, sizeof(points), depth, false);
 }
 
 void teste() {
-  cout << "TESTE" << endl;
+  printf("TESTE\n");
   typedef unsigned long ulong;
   typedef unsigned char uchar;
   typedef unsigned long sort_t;
@@ -89,7 +84,7 @@ void teste() {
 
 //  sort_t* ichars = (sort_t*)chars; 
 //  sort_t val = *ichars;
-//  cout << "val " << val << endl;
+//  std::cout << "val " << val << std::endl;
 
 //  uchar newchars[4];
 //  for(int i = 0, end = sizeof(sort_t); i != end; ++i)
@@ -101,31 +96,30 @@ void teste() {
   sort_t val = 0;
   val = chars[3] | (chars[2] << 8) | (chars[1] << 16) | (chars[0] << 24);
   
-  cout << "eval " << val << endl;
+  printf("eval %lu\n", val);
 
 //  debug_testEndian();
 
 }
 
 void test2() {
-  cout << "TEST2" << endl;
-  point points[1];
+  printf("TEST2\n");
+  struct point points[1];
   const size_t min = 0;
   const size_t max = 1000;
-  cout << "creating points..." << endl;
+  printf("creating points...\n");
   points[0].x = 229;
   points[0].y = 297;
   points[0].key = 42;
-  cout << "creating nodes..." << endl;
+  printf("creating nodes...\n");
   size_t depth;
-  unsigned char* unsortedQuadtree = nodify(points, sizeof(points) / sizeof(point), 
+  unsigned char* unsortedQuadtree = nodify(points, sizeof(points) / sizeof(struct point), 
                                   min, max, min, max, &depth);
-//  cout << "sorting..." << endl;
-//  sortify(unsortedQuadtree, sizeof(points) / sizeof(point), depth);
-  cout << endl << "done" << endl;
+  printf("sorting...\n");
+  sortify(unsortedQuadtree, sizeof(points) / sizeof(struct point), depth);
+  printf("\ndone\n");
   printNodes(unsortedQuadtree, sizeof(points), depth, true);
-}
-
+  free(unsortedQuadtree);
 }
 
 int main() {

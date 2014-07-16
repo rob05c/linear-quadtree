@@ -1,22 +1,11 @@
 #include "lqt.h"
-#include <iostream>
-#include <cmath>
-#include <cstring>
-#include <iomanip>
-#include <algorithm>
-#include <climits> ///< @todo remove
-#include <limits>
-
-namespace {
-using std::cout;
-using std::endl;
+#include <math.h>
+#include <string.h>
+#include <stdio.h>
 
 const unsigned int esa[4] = {3, 2, 1, 0}; ///< endianness-swapping lookup table, to avoid conditionals
-}
 
 #define ENDIANSWAP(a) (esa[(a) % 4] + (a) / 4 * 4)
-
-namespace linear_quadtree {
 
 /* 
  * Turn an array of points into an unsorted quadtree of nodes.
@@ -27,9 +16,9 @@ namespace linear_quadtree {
  *             a linear quadtree, as it signifies the number of
  *             identifying bit-pairs preceding the node
  *
- * @return a new array representing the unsorted nodes of the quadtree.
+ * @return a new array representing the unsorted nodes of the quadtree. caller takes ownership
  */
-unsigned char* nodify(point* points, size_t len, 
+unsigned char* nodify(struct point* points, size_t len, 
              ord_t xstart, ord_t xend, 
              ord_t ystart, ord_t yend,
              size_t* depth) {
@@ -41,18 +30,18 @@ unsigned char* nodify(point* points, size_t len,
   const size_t fullPointLen = locationLen + pointLen;
   const size_t arrayLen = fullPointLen * len;
 
-//  cout << "arraylen " << arrayLen << endl;
+//  std::cout << "arraylen " << arrayLen << std::endl;
   
 
-  unsigned char* array = new unsigned char[arrayLen];
+  unsigned char* array = malloc(sizeof(unsigned char) * arrayLen);
 
   for(size_t i = 0, end = len; i != end; ++i) {
 
     const size_t pointPos = fullPointLen * i;
     unsigned char* thisArrayPoint = &array[pointPos];
-    point* thisPoint = &points[i];
+    struct point* thisPoint = &points[i];
 
-//    cout << "pointpos " << pointPos << endl;
+//    std::cout << "pointpos " << pointPos << std::endl;
 
     ord_t currentXStart = xstart;
     ord_t currentXEnd = xend;
@@ -159,11 +148,11 @@ void swapify(unsigned char* firstPoint, unsigned char* secondPoint, const size_t
   const size_t pointLen = sizeof(ord_t) + sizeof(ord_t) + sizeof(key_t);
   const size_t fullPointLen = locationLen + pointLen;
 
-  unsigned char* temp = new unsigned char[fullPointLen];
+  unsigned char* temp = malloc(sizeof(unsigned char) * fullPointLen);
   memcpy(temp, firstPoint, fullPointLen);
   memcpy(firstPoint, secondPoint, fullPointLen);
   memcpy(secondPoint, temp, fullPointLen);
-  delete[] temp;
+  free(temp);
 }
 
 /*
@@ -180,19 +169,16 @@ void printNode(unsigned char* node, const size_t depth, const bool verbose) {
   if(verbose)
   {
     for(size_t i = 0, end = ceil(depth/4); i != end; ++i) {
-      const unsigned char& thisByte = node[i];
-      cout << ((thisByte & 0x80) == 0 ? 0 : 1);
-      cout << ((thisByte & 0x40) == 0 ? 0 : 1);
-      cout << " ";
-      cout << ((thisByte & 0x20) == 0 ? 0 : 1);
-      cout << ((thisByte & 0x10) == 0 ? 0 : 1);
-      cout << " ";
-      cout << ((thisByte & 0x8) == 0 ? 0 : 1);
-      cout << ((thisByte & 0x4) == 0 ? 0 : 1);
-      cout << " ";
-      cout << ((thisByte & 0x2) == 0 ? 0 : 1);
-      cout << ((thisByte & 0x1) == 0 ? 0 : 1);
-      cout << " ";
+      const unsigned char thisByte = node[i];
+      printf("%d%d %d%d %d%d %d%d ", 
+	     ((thisByte & 0x80) == 0 ? 0 : 1), 
+	     ((thisByte & 0x40) == 0 ? 0 : 1),
+	     ((thisByte & 0x20) == 0 ? 0 : 1),
+	     ((thisByte & 0x10) == 0 ? 0 : 1),
+	     ((thisByte & 0x8) == 0 ? 0 : 1),
+	     ((thisByte & 0x4) == 0 ? 0 : 1),
+	     ((thisByte & 0x2) == 0 ? 0 : 1),
+	     ((thisByte & 0x1) == 0 ? 0 : 1));
     }
   }
 
@@ -202,22 +188,22 @@ void printNode(unsigned char* node, const size_t depth, const bool verbose) {
   const sort_t* pointAsNum = (sort_t*)node;
 
 //  const size_t lastTrail = (depth / 4) % sizeof(sort_t);
-//  cout << endl;
-//  cout << endl << "charsPerSortT " << charsPerSortT << endl;
+//  std::cout << std::endl;
+//  std::cout << std::endl << "charsPerSortT " << charsPerSortT << std::endl;
 
-//  cout << endl;
-//  cout << "depth/4 " << depth / 4 << endl;
-//  cout << "sizeof(sort_t) " << sizeof(sort_t) << endl;
-//  cout << "depth/4 / sizeof(sort_t) " << depth / 4 / sizeof(sort_t) << endl;
-//  cout << "sortDepths " << sortDepths << endl;
+//  std::cout << std::endl;
+//  std::cout << "depth/4 " << depth / 4 << std::endl;
+//  std::cout << "sizeof(sort_t) " << sizeof(sort_t) << std::endl;
+//  std::cout << "depth/4 / sizeof(sort_t) " << depth / 4 / sizeof(sort_t) << std::endl;
+//  std::cout << "sortDepths " << sortDepths << std::endl;
 
-//  cout << "lastTrail " << lastTrail << endl;
+//  std::cout << "lastTrail " << lastTrail << std::endl;
 
   if(verbose)
   {
     for(size_t j = 0, jend = sortDepths; j < jend; ++j) { // must be <
       const sort_t key = pointAsNum[j];
-      cout << key << " ";
+      printf("%u ", key);
     }
   }
 
@@ -231,13 +217,13 @@ void printNode(unsigned char* node, const size_t depth, const bool verbose) {
 //  const sort_t lastKey = pointAsNum[sortDepths] & lastMod;
 //  const sort_t lastKeyU = __builtin_bswap32(pointAsNum[sortDepths]);
 
-//  cout << endl;
-//  cout << "lastMod " << lastMod << endl;
-//  cout << "lastKey " << lastKey << endl;
-//  cout << "lastKeyUnmodded " << lastKeyU << endl;
-//  cout << "firstChar " << (sort_t)node[0] << endl;
-//  cout << "secondChar " << (sort_t)node[1] << endl;
-//  cout << "sortTSize " << sizeof(sort_t) << endl;
+//  std::cout << std::endl;
+//  std::cout << "lastMod " << lastMod << std::endl;
+//  std::cout << "lastKey " << lastKey << std::endl;
+//  std::cout << "lastKeyUnmodded " << lastKeyU << std::endl;
+//  std::cout << "firstChar " << (sort_t)node[0] << std::endl;
+//  std::cout << "secondChar " << (sort_t)node[1] << std::endl;
+//  std::cout << "sortTSize " << sizeof(sort_t) << std::endl;
 
   const size_t pointXPos = locationLen;
   const size_t pointYPos = pointXPos + sizeof(ord_t);
@@ -247,8 +233,9 @@ void printNode(unsigned char* node, const size_t depth, const bool verbose) {
   const ord_t* arrayPointY = (ord_t*)&node[pointYPos];
   const key_t* arrayPointKey = (key_t*)&node[keyPos];
 
-  cout << std::fixed << std::setprecision(15);
-  cout << *arrayPointX << "\t" << *arrayPointY << "\t" << *arrayPointKey << endl;
+  //  std::cout << std::fixed << std::setprecision(15);
+  //  std::cout << *arrayPointX << "\t" << *arrayPointY << "\t" << *arrayPointKey << std::endl;
+  printf("%.15f\t%.15f\t%d\n", *arrayPointX, *arrayPointY, *arrayPointKey);
 }
 
 /* 
@@ -262,20 +249,18 @@ void printNodes(unsigned char* array, const size_t len, const size_t depth, cons
   const size_t pointLen = sizeof(ord_t) + sizeof(ord_t) + sizeof(key_t);
   const size_t fullPointLen = locationLen + pointLen;
 
-  cout << "linear quadtree: " << endl;
+  printf("linear quadtree: \n");
   if(verbose) {
     for(size_t i = 0, end = ceil(depth/4); i < end; ++i) {
-      cout << "            ";
+      printf("            ");
     }
   }
 
-  cout << "x\ty\tkey" << endl;
+  printf("x\ty\tkey\n");
   for(size_t i = 0, end = len; i < end; i += fullPointLen) { // must be < not !=
     printNode(&array[i], depth, verbose);
   }
-  cout << endl;
+  printf("\n");
 }
-
-} // namespace linear_quadtree
 
 #undef ENDIANSWAP
