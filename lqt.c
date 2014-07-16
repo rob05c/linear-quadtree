@@ -48,7 +48,7 @@ unsigned char* nodify(struct point* points, size_t len,
     ord_t currentYStart = ystart;
     ord_t currentYEnd = yend;
     for(size_t j = 0, jend = *depth; j != jend; ++j) {
-      const size_t currentLocationByte = j % 4;
+      //      const size_t currentLocationByte = j % 4;
       const size_t bitsPerLocation = 2;
       const size_t bit1 = thisPoint->y > (currentYStart + (currentYEnd - currentYStart) / 2);
       const size_t bit2 = thisPoint->x > (currentXStart + (currentXEnd - currentXStart) / 2);
@@ -62,8 +62,8 @@ unsigned char* nodify(struct point* points, size_t len,
       thisArrayPoint[ebyte] = (thisArrayPoint[ebyte] << bitsPerLocation) | currentPosBits;
       
       const ord_t newWidth = (currentXEnd - currentXStart) / 2;
-      const ord_t pointRight = thisPoint->x - currentXStart;
-      const ord_t pointRightRound = floor(pointRight / newWidth) * newWidth;
+      //      const ord_t pointRight = thisPoint->x - currentXStart;
+      //      const ord_t pointRightRound = floor(pointRight / newWidth) * newWidth;
       currentXStart = floor((thisPoint->x - currentXStart) / newWidth) * newWidth + currentXStart;
       currentXEnd = currentXStart + newWidth;
 
@@ -105,7 +105,7 @@ void sortify(unsigned char* array, const size_t len, const size_t depth) {
   const size_t fullPointLen = locationLen + pointLen;
 
   typedef unsigned int sort_t;
-  const size_t charsPerSortT = sizeof(sort_t);
+  //  const size_t charsPerSortT = sizeof(sort_t);
   const size_t sortDepths = ceil((depth / 4) / (double)sizeof(sort_t));
 
   bool swapped = true;
@@ -162,8 +162,8 @@ void swapify(unsigned char* firstPoint, unsigned char* secondPoint, const size_t
  */
 void printNode(unsigned char* node, const size_t depth, const bool verbose) {
   const size_t locationLen = ceil(depth / 4ul);
-  const size_t pointLen = sizeof(ord_t) + sizeof(ord_t) + sizeof(key_t);
-  const size_t fullPointLen = locationLen + pointLen;
+  //  const size_t pointLen = sizeof(ord_t) + sizeof(ord_t) + sizeof(key_t);
+  //  const size_t fullPointLen = locationLen + pointLen;
 //  const size_t arrayLen = fullPointLen * len;
 
   if(verbose)
@@ -183,7 +183,7 @@ void printNode(unsigned char* node, const size_t depth, const bool verbose) {
   }
 
   typedef unsigned int sort_t;
-  const size_t charsPerSortT = sizeof(sort_t);
+  //  const size_t charsPerSortT = sizeof(sort_t);
   const size_t sortDepths = ceil((depth / 4) / (double)sizeof(sort_t));
   const sort_t* pointAsNum = (sort_t*)node;
 

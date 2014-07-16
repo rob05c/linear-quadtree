@@ -66,15 +66,15 @@ void test1() {
 
 void teste() {
   printf("TESTE\n");
-  typedef unsigned long ulong;
+  //  typedef unsigned long ulong;
   typedef unsigned char uchar;
   typedef unsigned long sort_t;
 
-  const unsigned short esa8[8] = {7, 6, 5, 4, 3, 2, 1, 0}; ///< lookup table
-# define ENDIANSWAP8(a) (esa8[(a) % 8] + (a) / 8 * 8)
+  //  const unsigned short esa8[8] = {7, 6, 5, 4, 3, 2, 1, 0}; ///< lookup table
+  //# define ENDIANSWAP8(a) (esa8[(a) % 8] + (a) / 8 * 8)
 
-  const unsigned short esa4[4] = {3, 2, 1, 0}; ///< lookup table
-# define ENDIANSWAP4(a) (esa4[(a) % 4] + (a) / 4 * 4)
+  //  const unsigned short esa4[4] = {3, 2, 1, 0}; ///< lookup table
+  //# define ENDIANSWAP4(a) (esa4[(a) % 4] + (a) / 4 * 4)
 
   uchar chars[8];
   chars[0] = 37;
