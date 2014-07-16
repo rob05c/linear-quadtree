@@ -66,7 +66,6 @@ void test1() {
 
 void teste() {
   printf("TESTE\n");
-  //  typedef unsigned long ulong;
   typedef unsigned char uchar;
   typedef unsigned long sort_t;
 
@@ -97,9 +96,6 @@ void teste() {
   val = chars[3] | (chars[2] << 8) | (chars[1] << 16) | (chars[0] << 24);
   
   printf("eval %lu\n", val);
-
-//  debug_testEndian();
-
 }
 
 void test2() {

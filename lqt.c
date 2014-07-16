@@ -30,9 +30,6 @@ unsigned char* nodify(struct point* points, size_t len,
   const size_t fullPointLen = locationLen + pointLen;
   const size_t arrayLen = fullPointLen * len;
 
-//  std::cout << "arraylen " << arrayLen << std::endl;
-  
-
   unsigned char* array = malloc(sizeof(unsigned char) * arrayLen);
 
   for(size_t i = 0, end = len; i != end; ++i) {
@@ -41,14 +38,11 @@ unsigned char* nodify(struct point* points, size_t len,
     unsigned char* thisArrayPoint = &array[pointPos];
     struct point* thisPoint = &points[i];
 
-//    std::cout << "pointpos " << pointPos << std::endl;
-
     ord_t currentXStart = xstart;
     ord_t currentXEnd = xend;
     ord_t currentYStart = ystart;
     ord_t currentYEnd = yend;
     for(size_t j = 0, jend = *depth; j != jend; ++j) {
-      //      const size_t currentLocationByte = j % 4;
       const size_t bitsPerLocation = 2;
       const size_t bit1 = thisPoint->y > (currentYStart + (currentYEnd - currentYStart) / 2);
       const size_t bit2 = thisPoint->x > (currentXStart + (currentXEnd - currentXStart) / 2);
@@ -62,8 +56,6 @@ unsigned char* nodify(struct point* points, size_t len,
       thisArrayPoint[ebyte] = (thisArrayPoint[ebyte] << bitsPerLocation) | currentPosBits;
       
       const ord_t newWidth = (currentXEnd - currentXStart) / 2;
-      //      const ord_t pointRight = thisPoint->x - currentXStart;
-      //      const ord_t pointRightRound = floor(pointRight / newWidth) * newWidth;
       currentXStart = floor((thisPoint->x - currentXStart) / newWidth) * newWidth + currentXStart;
       currentXEnd = currentXStart + newWidth;
 
@@ -105,11 +97,11 @@ void sortify(unsigned char* array, const size_t len, const size_t depth) {
   const size_t fullPointLen = locationLen + pointLen;
 
   typedef unsigned int sort_t;
-  //  const size_t charsPerSortT = sizeof(sort_t);
   const size_t sortDepths = ceil((depth / 4) / (double)sizeof(sort_t));
 
   bool swapped = true;
-  while(swapped) { // bubble sort - will iterate a maximum of n times
+  // bubble sort - will iterate a maximum of n times
+  while(swapped) { 
     swapped = false;
     for(size_t i = 0, end = len * fullPointLen; i < end; i += fullPointLen) { //must be < not !=
       if(i + fullPointLen >= len * fullPointLen)
@@ -122,9 +114,6 @@ void sortify(unsigned char* array, const size_t len, const size_t depth) {
       const sort_t* nextPointAsNum = (sort_t*)nextPoint;
       
       for(size_t j = 0, jend = sortDepths; j < jend; ++j) { // must be < not !=
-//        const sort_t key = *((unsigned int*)&point[j]);
-//        const sort_t nextKey = *((unsigned int*)&nextPoint[j]);
-//        const sort_t key = __builtin_bswap32(pointAsNum[j]);
         const sort_t key = pointAsNum[j];
         const sort_t nextKey = nextPointAsNum[j];
         if(key < nextKey)
@@ -162,9 +151,6 @@ void swapify(unsigned char* firstPoint, unsigned char* secondPoint, const size_t
  */
 void printNode(unsigned char* node, const size_t depth, const bool verbose) {
   const size_t locationLen = ceil(depth / 4ul);
-  //  const size_t pointLen = sizeof(ord_t) + sizeof(ord_t) + sizeof(key_t);
-  //  const size_t fullPointLen = locationLen + pointLen;
-//  const size_t arrayLen = fullPointLen * len;
 
   if(verbose)
   {
@@ -183,21 +169,8 @@ void printNode(unsigned char* node, const size_t depth, const bool verbose) {
   }
 
   typedef unsigned int sort_t;
-  //  const size_t charsPerSortT = sizeof(sort_t);
   const size_t sortDepths = ceil((depth / 4) / (double)sizeof(sort_t));
   const sort_t* pointAsNum = (sort_t*)node;
-
-//  const size_t lastTrail = (depth / 4) % sizeof(sort_t);
-//  std::cout << std::endl;
-//  std::cout << std::endl << "charsPerSortT " << charsPerSortT << std::endl;
-
-//  std::cout << std::endl;
-//  std::cout << "depth/4 " << depth / 4 << std::endl;
-//  std::cout << "sizeof(sort_t) " << sizeof(sort_t) << std::endl;
-//  std::cout << "depth/4 / sizeof(sort_t) " << depth / 4 / sizeof(sort_t) << std::endl;
-//  std::cout << "sortDepths " << sortDepths << std::endl;
-
-//  std::cout << "lastTrail " << lastTrail << std::endl;
 
   if(verbose)
   {
@@ -207,24 +180,6 @@ void printNode(unsigned char* node, const size_t depth, const bool verbose) {
     }
   }
 
-  // mod comes later
-//  sort_t lastMod = 0;
-//  for(size_t i = 0, end = lastTrail; i < end; ++i) { // must be < 
-//    lastMod = lastMod << CHAR_BIT;
-//    lastMod += UCHAR_MAX;
-//  }
-//  lastMod = lastMod ^ std::numeric_limits<sort_t>::max();
-//  const sort_t lastKey = pointAsNum[sortDepths] & lastMod;
-//  const sort_t lastKeyU = __builtin_bswap32(pointAsNum[sortDepths]);
-
-//  std::cout << std::endl;
-//  std::cout << "lastMod " << lastMod << std::endl;
-//  std::cout << "lastKey " << lastKey << std::endl;
-//  std::cout << "lastKeyUnmodded " << lastKeyU << std::endl;
-//  std::cout << "firstChar " << (sort_t)node[0] << std::endl;
-//  std::cout << "secondChar " << (sort_t)node[1] << std::endl;
-//  std::cout << "sortTSize " << sizeof(sort_t) << std::endl;
-
   const size_t pointXPos = locationLen;
   const size_t pointYPos = pointXPos + sizeof(ord_t);
   const size_t keyPos = pointYPos + sizeof(ord_t);
@@ -233,8 +188,6 @@ void printNode(unsigned char* node, const size_t depth, const bool verbose) {
   const ord_t* arrayPointY = (ord_t*)&node[pointYPos];
   const key_t* arrayPointKey = (key_t*)&node[keyPos];
 
-  //  std::cout << std::fixed << std::setprecision(15);
-  //  std::cout << *arrayPointX << "\t" << *arrayPointY << "\t" << *arrayPointKey << std::endl;
   printf("%.15f\t%.15f\t%d\n", *arrayPointX, *arrayPointY, *arrayPointKey);
 }
 
