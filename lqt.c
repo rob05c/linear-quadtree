@@ -3,9 +3,7 @@
 #include <string.h>
 #include <stdio.h>
 
-const unsigned int esa[4] = {3, 2, 1, 0}; ///< endianness-swapping lookup table, to avoid conditionals
-
-#define ENDIANSWAP(a) (esa[(a) % 4] + (a) / 4 * 4)
+#define ENDIANSWAP(a) (3 - a)
 
 /* 
  * Turn an array of points into an unsorted quadtree of nodes.
