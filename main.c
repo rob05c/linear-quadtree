@@ -1,4 +1,5 @@
 #include "lqt.h"
+#include "test.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -122,6 +123,10 @@ int main() {
   srand(time(NULL));
 
   test2();
+
+  printf("\n");
+  
+  test_matmul(1000, false);
 
   return 0;
 }
