@@ -78,6 +78,21 @@ unsigned char* nodify(struct point* points, size_t len,
 }
 
 /*
+ * swap the memory of the given quadtree points
+ */
+static inline void swapify(unsigned char* firstPoint, unsigned char* secondPoint, const size_t depth) {
+  const size_t locationLen = ceil(depth / 4ul);
+  const size_t pointLen = sizeof(ord_t) + sizeof(ord_t) + sizeof(key_t);
+  const size_t fullPointLen = locationLen + pointLen;
+
+  unsigned char* temp = malloc(sizeof(unsigned char) * fullPointLen);
+  memcpy(temp, firstPoint, fullPointLen);
+  memcpy(firstPoint, secondPoint, fullPointLen);
+  memcpy(secondPoint, temp, fullPointLen);
+  free(temp);
+}
+
+/*
  * Sort an unsorted linear quadtree. Unsorted linear quadtrees aren't
  * very useful.
  * 
@@ -127,20 +142,6 @@ void sortify(unsigned char* array, const size_t len, const size_t depth) {
   }
 }
 
-/*
- * swap the memory of the given quadtree points
- */
-void swapify(unsigned char* firstPoint, unsigned char* secondPoint, const size_t depth) {
-  const size_t locationLen = ceil(depth / 4ul);
-  const size_t pointLen = sizeof(ord_t) + sizeof(ord_t) + sizeof(key_t);
-  const size_t fullPointLen = locationLen + pointLen;
-
-  unsigned char* temp = malloc(sizeof(unsigned char) * fullPointLen);
-  memcpy(temp, firstPoint, fullPointLen);
-  memcpy(firstPoint, secondPoint, fullPointLen);
-  memcpy(secondPoint, temp, fullPointLen);
-  free(temp);
-}
 
 /*
  * print out a quadtree node
