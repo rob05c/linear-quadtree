@@ -4,13 +4,16 @@
 #include <time.h>
 
 // generate a uniform random between min and max exclusive
-ord_t uniformFrand(ord_t min, ord_t max) {
+static inline ord_t uniformFrand(const ord_t min, const ord_t max) {
   const double r = (double)rand() / RAND_MAX;
   return min + r * (max - min);
 }
 
-void debug_testEndian() {
+void test_endian_2() {
+  printf("test_endian_2\n");
+
 //  static_assert(sizeof(unsigned int) == 4, "sizeof(int) is not 4, fix the below code")
+
   unsigned char a[4];
   unsigned char* array = a;
   // array[0] = 11
@@ -42,8 +45,8 @@ void debug_testEndian() {
   printf("endian: %u\n", *iarray);
 }
 
-void test1() {
-  printf("TEST1\n");
+void test_many() {
+  printf("test_many\n");
   struct point points[10000];
   const size_t min = 1000;
   const size_t max = 1100;
@@ -76,8 +79,8 @@ void test1() {
   free(unsortedQuadtree);
 }
 
-void teste() {
-  printf("TESTE\n");
+void test_endian() {
+  printf("test_endian\n");
   typedef unsigned char uchar;
   typedef unsigned long sort_t;
 
@@ -110,8 +113,8 @@ void teste() {
   printf("eval %lu\n", val);
 }
 
-void test2() {
-  printf("TEST2\n");
+void test_few() {
+  printf("test_few\n");
   struct point points[2];
   const size_t min = 0;
   const size_t max = 1000;
@@ -119,33 +122,36 @@ void test2() {
   points[0].x = 229;
   points[0].y = 297;
   points[0].key = 42;
-  points[0].x = 7;
-  points[0].y = 14;
-  points[0].key = 99;
+  points[1].x = 7;
+  points[1].y = 14;
+  points[1].key = 99;
 
   printf("creating nodes...\n");
   size_t depth;
 
-  unsigned char* unsortedQuadtree = nodify(points, sizeof(points) / sizeof(struct point), 
-                                  min, max, min, max, &depth);
-  printf("sorting...\n");
-  sortify(unsortedQuadtree, sizeof(points) / sizeof(struct point), depth);
-  printf("\ndone\n");
-  printNodes(unsortedQuadtree, sizeof(points), depth, false);
-  free(unsortedQuadtree);
-
-  printf("cuda creating nodes...\n");
-  unsortedQuadtree = cuda_nodify(points, sizeof(points) / sizeof(struct point), 
-                                  min, max, min, max, &depth);
-  printf("cuda sorting...\n");
-  sortify(unsortedQuadtree, sizeof(points) / sizeof(struct point), depth);
-  printf("\ncuda done\n");
-  printNodes(unsortedQuadtree, sizeof(points), depth, false);
-  free(unsortedQuadtree);
+  {
+    unsigned char* unsortedQuadtree = nodify(points, sizeof(points) / sizeof(struct point), 
+                                             min, max, min, max, &depth);
+    printf("sorting...\n");
+    sortify(unsortedQuadtree, sizeof(points) / sizeof(struct point), depth);
+    printf("\ndone\n");
+    printNodes(unsortedQuadtree, sizeof(points), depth, false);
+    free(unsortedQuadtree);
+  }
+  {
+    printf("cuda creating nodes...\n");
+    unsigned char* unsortedQuadtree = cuda_nodify(points, sizeof(points) / sizeof(struct point), 
+                                                  min, max, min, max, &depth);
+    printf("cuda sorting...\n");
+    sortify(unsortedQuadtree, sizeof(points) / sizeof(struct point), depth);
+    printf("\ncuda done\n");
+    printNodes(unsortedQuadtree, sizeof(points), depth, false);
+    free(unsortedQuadtree);
+  }
 }
 
 void test_time() {
-  printf("TESTTIME\n");
+  printf("test_time\n");
   const size_t numPoints = 100000000;
   struct point* points = malloc(sizeof(struct point) * numPoints);
   const size_t min = 1000;
@@ -183,11 +189,8 @@ void test_time() {
 int main() {
   srand(time(NULL));
 
-  test_time();
+  test_few();
 
   printf("\n");
-  
-//  test_matmul(1000, false);
-
   return 0;
 }

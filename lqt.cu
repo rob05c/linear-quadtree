@@ -17,16 +17,11 @@ __global__ void cuda_cuda_nodify(struct point* points, unsigned char* array,
   const size_t lastPoint = numPoints * fullPointLen - fullPointLen;
 
   const size_t pointPos = fullPointLen * i;
-  unsigned char* thisArrayPoint_ = &array[pointPos];
+  unsigned char* thisArrayPoint = &array[pointPos];
   struct point* thisPoint = &points[i];
 
   if(pointPos > lastPoint)
     return; // skip the final block remainder
-
-  extern __shared__ unsigned char thisArrayPoint[];
-
-  for(int i = 0; i != fullPointLen; ++i)
-    thisArrayPoint[i] = thisArrayPoint_[i];
 
   ord_t currentXStart = xstart;
   ord_t currentXEnd   = xend;
@@ -39,7 +34,7 @@ __global__ void cuda_cuda_nodify(struct point* points, unsigned char* array,
     const size_t currentPosBits = (bit1 << 1) | bit2;
 
     const size_t byte = j / 4;
-    const size_t ebyte = byte / 4 * 4 + ENDIANSWAP(byte % 4);
+    const size_t ebyte = byte / 4 * 4 + ENDIANSWAP(byte % 4); // the / 4 * 4 rounds down
     // @note it may be more efficient to create the node, and then loop and 
     //       use an intrinsic, e.g. __builtin_bswap32(pointAsNum[j]). Intrinsics are fast.
 
@@ -65,9 +60,6 @@ __global__ void cuda_cuda_nodify(struct point* points, unsigned char* array,
   *arrayPointY = thisPoint->y;
   key_t* arrayPointKey = (key_t*)&thisArrayPoint[keyPos];
   *arrayPointKey = thisPoint->key;
-
-  for(int i = 0; i != fullPointLen; ++i)
-    thisArrayPoint[i] = thisArrayPoint_[i];
 }
 
 unsigned char* cuda_nodify(struct point* points, size_t len, 

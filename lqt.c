@@ -92,19 +92,7 @@ static inline void swapify(unsigned char* firstPoint, unsigned char* secondPoint
   free(temp);
 }
 
-/*
- * Sort an unsorted linear quadtree. Unsorted linear quadtrees aren't
- * very useful.
- * 
- * Currently uses bubblesort, because I'm lazy. This implementation is
- * primarily a test to be ported to a GPU. Hence, I don't really care
- * how it's sorted. It would be trivial to change this to Mergesort.
- *
- * @param array unsorted linear quadtree
- * @param len   number of points in the quadtree
- * @param depth depth of the quadtree. 
- */
-void sortify(unsigned char* array, const size_t len, const size_t depth) {
+static inline void sortify_bubble(unsigned char* array, const size_t len, const size_t depth) {
   const size_t locationLen = ceil(depth / 4ul);
   const size_t pointLen = sizeof(ord_t) + sizeof(ord_t) + sizeof(key_t);
   const size_t fullPointLen = locationLen + pointLen;
@@ -140,6 +128,22 @@ void sortify(unsigned char* array, const size_t len, const size_t depth) {
       }
     }
   }
+}
+
+static inline void sortify_radix(unsigned char* array, const size_t len, const size_t depth) {
+  sortify_bubble(array, len, depth); // ha ha, just kidding
+}
+
+/*
+ * Sort an unsorted linear quadtree. Unsorted linear quadtrees aren't
+ * very useful.
+ *
+ * @param array unsorted linear quadtree
+ * @param len   number of points in the quadtree
+ * @param depth depth of the quadtree. 
+ */
+void sortify(unsigned char* array, const size_t len, const size_t depth) {
+  sortify_bubble(array, len, depth);
 }
 
 
