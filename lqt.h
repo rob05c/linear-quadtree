@@ -27,6 +27,8 @@ unsigned char* cuda_nodify(struct point* points, size_t len,
                       size_t* depth);
 
 void sortify(unsigned char* array, const size_t len, const size_t depth);
+void sortify_radix(unsigned char* array, const size_t len, const size_t depth);
+void sortify_bubble(unsigned char* array, const size_t len, const size_t depth);
 
 void printNode(unsigned char* node, const size_t depth, const bool verbose);
 void printNodes(unsigned char* array, const size_t len, const size_t depth, const bool verbose);

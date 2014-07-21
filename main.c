@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <math.h>
+#include <string.h>
 
 // generate a uniform random between min and max exclusive
 static inline ord_t uniformFrand(const ord_t min, const ord_t max) {
@@ -186,10 +188,104 @@ void test_time() {
   free(unsortedQuadtree);
 }
 
+void test_sorts() {
+  printf("test_sorts\n");
+
+  const size_t numPoints = 10000;
+  struct point points[numPoints];
+  const size_t min = 1000;
+  const size_t max = 1100;
+  printf("creating points...\n");
+  for(int i = 0, end = sizeof(points) / sizeof(struct point); i != end; ++i) {
+    points[i].x = uniformFrand(min, max);
+    points[i].y = uniformFrand(min, max);
+    points[i].key = i;
+  }
+
+  printf("creating nodes...\n");
+  size_t depth;
+  
+  unsigned char* qt_bubble = nodify(points, numPoints, 
+                                           min, max, min, max, &depth);
+
+  const size_t locationLen = ceil(depth / 4ul);
+  const size_t pointLen = sizeof(ord_t) + sizeof(ord_t) + sizeof(key_t);
+  const size_t fullPointLen = locationLen + pointLen;
+  const size_t qt_len = numPoints * fullPointLen;
+
+  unsigned char* qt_radix = malloc(qt_len);
+  memcpy(qt_radix, qt_bubble, qt_len);
+
+  printf("sorting bubble...\n");
+  sortify_bubble(qt_bubble, numPoints, depth);
+  printf("sorting radix...\n");
+  sortify_radix(qt_radix, numPoints, depth);
+  printf("bubble nodes:\n");
+  printNodes(qt_bubble, sizeof(points), depth, false);
+  printf("radix nodes:\n");
+  printNodes(qt_bubble, sizeof(points), depth, false);
+
+  free(qt_bubble);
+  free(qt_radix);
+}
+
+void test_sort_time() {
+  fprintf(stderr, "entering test_sort_time\n");
+  printf("test_sort_time\n");
+  const size_t numPoints = 100000;
+  struct point* points = malloc(sizeof(struct point) * numPoints);
+  const size_t min = 1000;
+  const size_t max = 1100;
+  printf("creating points...\n");
+  for(int i = 0, end = numPoints; i != end; ++i) {
+    points[i].x = uniformFrand(min, max);
+    points[i].y = uniformFrand(min, max);
+    points[i].key = i;
+  }
+
+  printf("creating nodes...\n");
+  size_t depth;
+
+
+  unsigned char* qt_bubble = nodify(points, numPoints, 
+                                           min, max, min, max, &depth);
+  free(points);
+
+  const size_t locationLen = ceil(depth / 4ul);
+  const size_t pointLen = sizeof(ord_t) + sizeof(ord_t) + sizeof(key_t);
+  const size_t fullPointLen = locationLen + pointLen;
+  const size_t qt_len = numPoints * fullPointLen;
+
+  unsigned char* qt_radix = malloc(qt_len);
+
+  memcpy(qt_radix, qt_bubble, qt_len);
+
+
+  printf("sorting bubble...\n");
+  const clock_t start = clock();
+  sortify_bubble(qt_bubble, numPoints, depth);
+  const clock_t end = clock();
+  const double elapsed_s = (end - start) / (double)CLOCKS_PER_SEC;
+  printf("bubble sort time: %fs\n", elapsed_s);
+
+  printf("sorting radix...\n");
+  const clock_t start_radix = clock();
+  sortify_radix(qt_radix, numPoints, depth);
+  const clock_t end_radix = clock();
+  const double elapsed_s_radix = (end_radix - start_radix) / (double)CLOCKS_PER_SEC;
+  const double speedup = elapsed_s / elapsed_s_radix;
+  printf("radix sort time: %fs\n", elapsed_s_radix);
+  printf("radix speedup: %f\n", speedup);
+
+  free(qt_bubble);
+  free(qt_radix);
+}
+
+
 int main() {
   srand(time(NULL));
 
-  test_few();
+  test_sort_time();
 
   printf("\n");
   return 0;

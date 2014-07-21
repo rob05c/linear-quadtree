@@ -2,6 +2,7 @@
 #include <math.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdint.h>
 
 #define ENDIANSWAP(a) (3 - a)
 
@@ -92,7 +93,7 @@ static inline void swapify(unsigned char* firstPoint, unsigned char* secondPoint
   free(temp);
 }
 
-static inline void sortify_bubble(unsigned char* array, const size_t len, const size_t depth) {
+void sortify_bubble(unsigned char* array, const size_t len, const size_t depth) {
   const size_t locationLen = ceil(depth / 4ul);
   const size_t pointLen = sizeof(ord_t) + sizeof(ord_t) + sizeof(key_t);
   const size_t fullPointLen = locationLen + pointLen;
@@ -130,8 +131,91 @@ static inline void sortify_bubble(unsigned char* array, const size_t len, const 
   }
 }
 
-static inline void sortify_radix(unsigned char* array, const size_t len, const size_t depth) {
-  sortify_bubble(array, len, depth); // ha ha, just kidding
+struct rs_list_node {
+  unsigned char* value;
+  struct rs_list_node* next;
+};
+
+struct rs_list {
+  struct rs_list_node* head;
+  struct rs_list_node* tail;
+};
+void rs_list_insert(struct rs_list* l, const unsigned char* val, const size_t val_len) {
+  struct rs_list_node* n = (struct rs_list_node*)malloc(sizeof(struct rs_list_node));
+  n->value = malloc(val_len);
+  memcpy(n->value, val, val_len);
+  n->next = NULL;
+  if(l->head == NULL) {
+    l->head = n;
+    l->tail = n;
+    return;
+  }
+  l->tail->next = n;
+  l->tail = n;
+}
+void rs_list_init(struct rs_list* l) {
+  l->head = NULL;
+  l->tail = NULL;
+}
+void rs_list_clear(struct rs_list* l) {
+  for(struct rs_list_node* node = l->head; node;) {
+    struct rs_list_node* toDelete = node;
+    node = node->next;
+    free(toDelete->value);
+    free(toDelete);
+  }
+  l->head = NULL;
+  l->tail = NULL;
+}
+
+/// @todo change this to not be global
+#define BASE 10 
+#define MULT_WILL_OVERFLOW(a, b, typemax) ((b) > (typemax) / (a))
+
+/// As above, depth MUST be a multiple of 32 => the position code MUST
+/// be a multiple of 64.
+/// @todo fix this to work for depths > 32
+void sortify_radix(unsigned char* array, const size_t len, const size_t depth) {
+  typedef uint64_t sort_t;
+  const sort_t sort_t_max = ~0ULL;
+
+  const size_t locationLen = ceil(depth / 4ul);
+  const size_t pointLen = sizeof(ord_t) + sizeof(ord_t) + sizeof(key_t);
+  const size_t fullPointLen = locationLen + pointLen;
+
+  struct rs_list buckets[BASE];
+  for(int i = 0, end = BASE; i != end; ++i) 
+    rs_list_init(&buckets[i]);
+
+  const sort_t max = sort_t_max; ///< @todo pass max? iterate to find?
+
+//  fprintf(stderr, "sr: max: %lu\n", max);
+
+  int i;
+  for(sort_t n = 1; max / n > 0; n *= BASE) {
+//    fprintf(stderr, "sr: base %lu\n", n);
+    // sort list of numbers into buckets
+    for(i = 0; i < len; ++i) {
+      const size_t pointPos = fullPointLen * i;
+      unsigned char* thisArrayPoint = &array[pointPos];
+      const sort_t location = *((sort_t*)thisArrayPoint);
+      // replace array[i] in bucket_index with position code
+      const size_t bucket_index = (location / n) % BASE;
+      rs_list_insert(&buckets[bucket_index], thisArrayPoint, fullPointLen);
+    }
+
+    // merge buckets back into list
+    for(int k = i = 0; i < BASE; rs_list_clear(&buckets[i++])) {
+      for(struct rs_list_node* j = buckets[i].head; j != NULL; j = j->next) {
+        memcpy(array + k * fullPointLen, j->value, fullPointLen);
+        ++k;
+      }
+    }
+    if(MULT_WILL_OVERFLOW(n, BASE, sort_t_max))
+      break;
+  }
+  for(int i = 0, end = BASE; i != end; ++i) 
+    rs_list_clear(&buckets[i]);
 }
 
 /*
