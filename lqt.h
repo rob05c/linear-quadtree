@@ -34,7 +34,7 @@ struct linear_quadtree nodify(struct lqt_point* points, size_t len,
                               ord_t ystart, ord_t yend,
                               size_t* depth);
 
-unsigned char* cuda_nodify(struct lqt_point* points, size_t len, 
+struct linear_quadtree cuda_nodify(struct lqt_point* points, size_t len, 
                       ord_t xstart, ord_t xend, 
                       ord_t ystart, ord_t yend,
                       size_t* depth);

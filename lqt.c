@@ -4,8 +4,6 @@
 #include <stdio.h>
 #include <stdint.h>
 
-#define ENDIANSWAP(a) (e - a)
-
 void delete_linear_quadtree(struct linear_quadtree q) {
   free(q.locations);
   free(q.points);
@@ -42,7 +40,6 @@ struct linear_quadtree nodify(struct lqt_point* points, size_t len,
   lqt.length = len;
 
   for(size_t i = 0, end = len; i != end; ++i) {
-    //unsigned char* thisArrayPoint = (unsigned char*)&lqt.locations[i];
     struct lqt_point* thisPoint = &lqt.points[i];
 
     ord_t currentXStart = xstart;
@@ -50,19 +47,10 @@ struct linear_quadtree nodify(struct lqt_point* points, size_t len,
     ord_t currentYStart = ystart;
     ord_t currentYEnd = yend;
     for(size_t j = 0, jend = *depth; j != jend; ++j) {
-      //const size_t lsize = sizeof(location_t);
-      //const size_t bitsPerLocation = 2;
       const location_t bit1 = thisPoint->y > (currentYStart + (currentYEnd - currentYStart) / 2);
       const location_t bit2 = thisPoint->x > (currentXStart + (currentXEnd - currentXStart) / 2);
       const location_t currentPosBits = (bit1 << 1) | bit2;
       lqt.locations[i] = (lqt.locations[i] << 2) | currentPosBits;
-
-      //const size_t byte = j / 4;
-      //const size_t ebyte = byte / 4 * 4 + ENDIANSWAP(byte % 4);
-      // @note it may be more efficient to create the node, and then loop and 
-      //       use an intrinsic, e.g. __builtin_bswap32(pointAsNum[j]). Intrinsics are fast.
-
-      //thisArrayPoint[ebyte] = (thisArrayPoint[ebyte] << bitsPerLocation) | currentPosBits;
 
       const ord_t newWidth = (currentXEnd - currentXStart) / 2;
       currentXStart = floor((thisPoint->x - currentXStart) / newWidth) * newWidth + currentXStart;
