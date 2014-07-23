@@ -6,7 +6,7 @@
 
 #define ENDIANSWAP(a) (3 - a)
 
-__global__ void cuda_cuda_nodify(struct point* points, unsigned char* array,
+__global__ void cuda_cuda_nodify(struct lqt_point* points, unsigned char* array,
                                  const size_t depth, ord_t xstart, ord_t xend, 
                                  ord_t ystart, ord_t yend, size_t numPoints) {
   const int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -18,7 +18,7 @@ __global__ void cuda_cuda_nodify(struct point* points, unsigned char* array,
 
   const size_t pointPos = fullPointLen * i;
   unsigned char* thisArrayPoint = &array[pointPos];
-  struct point* thisPoint = &points[i];
+  struct lqt_point* thisPoint = &points[i];
 
   if(pointPos > lastPoint)
     return; // skip the final block remainder
@@ -62,7 +62,7 @@ __global__ void cuda_cuda_nodify(struct point* points, unsigned char* array,
   *arrayPointKey = thisPoint->key;
 }
 
-unsigned char* cuda_nodify(struct point* points, size_t len, 
+unsigned char* cuda_nodify(struct lqt_point* points, size_t len, 
              ord_t xstart, ord_t xend, 
              ord_t ystart, ord_t yend,
              size_t* depth) {
@@ -78,10 +78,10 @@ unsigned char* cuda_nodify(struct point* points, size_t len,
 
   unsigned char* array = (unsigned char*)malloc(arrayLen);
   unsigned char* cuda_array;
-  struct point* cuda_points;
+  struct lqt_point* cuda_points;
   cudaMalloc((void**)&cuda_array, arrayLen);
-  cudaMalloc((void**)&cuda_points, len * sizeof(point));
-  cudaMemcpy(cuda_points, points, len * sizeof(point), cudaMemcpyHostToDevice);
+  cudaMalloc((void**)&cuda_points, len * sizeof(struct lqt_point));
+  cudaMemcpy(cuda_points, points, len * sizeof(struct lqt_point), cudaMemcpyHostToDevice);
   cudaMemset(cuda_array, 0, arrayLen); // debug
 
   cuda_cuda_nodify<<<(len + (THREADS_PER_BLOCK - 1)) / THREADS_PER_BLOCK, THREADS_PER_BLOCK, fullPointLen>>>(cuda_points, cuda_array, *depth, xstart, xend, ystart, yend, len);

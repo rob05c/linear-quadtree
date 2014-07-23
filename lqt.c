@@ -4,147 +4,120 @@
 #include <stdio.h>
 #include <stdint.h>
 
-#define ENDIANSWAP(a) (3 - a)
+#define ENDIANSWAP(a) (e - a)
+
+void delete_linear_quadtree(struct linear_quadtree q) {
+  free(q.locations);
+  free(q.points);
+}
 
 /* 
  * Turn an array of points into an unsorted quadtree of nodes.
  * You'll probably want to call sortify() to sort the list into a
  * useful quadtree.
  *
+ * array is of form [fullpoint0, fullpoint1, ...] where 
+ * fullpoint = [locationcode, x, y, key] where
+ * sizeof(locationcode) = ceil(*depth / 4ul), x, y are of type ord_t, key is of type key_t
+ *
+ * 
+ * @param points points to create a quadtree from. Takes ownership. MUST be dynamically allocated
+ *
  * @param[out] depth the depth of the quadtree. This is important for
  *             a linear quadtree, as it signifies the number of
  *             identifying bit-pairs preceding the node
  *
- * @return a new array representing the unsorted nodes of the quadtree. caller takes ownership
+ * @return a new unsorted linear_quadtree. caller takes ownership, and must call delete_linear_quadtree()
  */
-unsigned char* nodify(struct point* points, size_t len, 
+struct linear_quadtree nodify(struct lqt_point* points, size_t len, 
              ord_t xstart, ord_t xend, 
              ord_t ystart, ord_t yend,
              size_t* depth) {
-  // depth must evenly divide 4
-//  *depth = sizeof(ord_t) * 8 / 2;
-  *depth = 32;
-  const size_t locationLen = ceil(*depth / 4ul);
-  const size_t pointLen = sizeof(ord_t) + sizeof(ord_t) + sizeof(key_t);
-  const size_t fullPointLen = locationLen + pointLen;
-  const size_t arrayLen = fullPointLen * len;
+  *depth = LINEAR_QUADTREE_DEPTH;
 
-  unsigned char* array = malloc(sizeof(unsigned char) * arrayLen);
+  struct linear_quadtree lqt;
+  lqt.locations = malloc(sizeof(location_t) * len);
+  memset(lqt.locations, 0, sizeof(location_t) * len);
+  lqt.points = points;
+  lqt.length = len;
 
   for(size_t i = 0, end = len; i != end; ++i) {
-
-    const size_t pointPos = fullPointLen * i;
-    unsigned char* thisArrayPoint = &array[pointPos];
-    struct point* thisPoint = &points[i];
+    //unsigned char* thisArrayPoint = (unsigned char*)&lqt.locations[i];
+    struct lqt_point* thisPoint = &lqt.points[i];
 
     ord_t currentXStart = xstart;
     ord_t currentXEnd = xend;
     ord_t currentYStart = ystart;
     ord_t currentYEnd = yend;
     for(size_t j = 0, jend = *depth; j != jend; ++j) {
-      const size_t bitsPerLocation = 2;
-      const size_t bit1 = thisPoint->y > (currentYStart + (currentYEnd - currentYStart) / 2);
-      const size_t bit2 = thisPoint->x > (currentXStart + (currentXEnd - currentXStart) / 2);
-      const size_t currentPosBits = (bit1 << 1) | bit2;
+      //const size_t lsize = sizeof(location_t);
+      //const size_t bitsPerLocation = 2;
+      const location_t bit1 = thisPoint->y > (currentYStart + (currentYEnd - currentYStart) / 2);
+      const location_t bit2 = thisPoint->x > (currentXStart + (currentXEnd - currentXStart) / 2);
+      const location_t currentPosBits = (bit1 << 1) | bit2;
+      lqt.locations[i] = (lqt.locations[i] << 2) | currentPosBits;
 
-      const size_t byte = j / 4;
-      const size_t ebyte = byte / 4 * 4 + ENDIANSWAP(byte % 4);
+      //const size_t byte = j / 4;
+      //const size_t ebyte = byte / 4 * 4 + ENDIANSWAP(byte % 4);
       // @note it may be more efficient to create the node, and then loop and 
       //       use an intrinsic, e.g. __builtin_bswap32(pointAsNum[j]). Intrinsics are fast.
 
-      thisArrayPoint[ebyte] = (thisArrayPoint[ebyte] << bitsPerLocation) | currentPosBits;
-      
+      //thisArrayPoint[ebyte] = (thisArrayPoint[ebyte] << bitsPerLocation) | currentPosBits;
+
       const ord_t newWidth = (currentXEnd - currentXStart) / 2;
       currentXStart = floor((thisPoint->x - currentXStart) / newWidth) * newWidth + currentXStart;
       currentXEnd = currentXStart + newWidth;
-
       const ord_t newHeight = (currentYEnd - currentYStart) / 2;
       currentYStart = floor((thisPoint->y - currentYStart) / newHeight) * newHeight + currentYStart;
       currentYEnd = currentYStart + newHeight;
     }
-
-    const size_t pointXPos = locationLen;
-    const size_t pointYPos = pointXPos + sizeof(ord_t);
-    const size_t keyPos = pointYPos + sizeof(ord_t);
-
-    ord_t* arrayPointX = (ord_t*)&thisArrayPoint[pointXPos];
-    *arrayPointX = thisPoint->x;
-    thisArrayPoint[pointXPos] = thisPoint->x;
-    ord_t* arrayPointY = (ord_t*)&thisArrayPoint[pointYPos];
-    *arrayPointY = thisPoint->y;
-    key_t* arrayPointKey = (key_t*)&thisArrayPoint[keyPos];
-    *arrayPointKey = thisPoint->key;
   }
-  return array;
+  return lqt;
 }
 
 /*
  * swap the memory of the given quadtree points
+ * DO NOT change this to use the XOR trick, unless you speed test it first.
  */
-static inline void swapify(unsigned char* firstPoint, unsigned char* secondPoint, const size_t depth) {
-  const size_t locationLen = ceil(depth / 4ul);
-  const size_t pointLen = sizeof(ord_t) + sizeof(ord_t) + sizeof(key_t);
-  const size_t fullPointLen = locationLen + pointLen;
+static inline void swapify(struct linear_quadtree q, const size_t first, const size_t second) {
+  const location_t temp_location = q.locations[first];
+  q.locations[first]  = q.locations[second];
+  q.locations[second] = temp_location;
 
-  unsigned char* temp = malloc(sizeof(unsigned char) * fullPointLen);
-  memcpy(temp, firstPoint, fullPointLen);
-  memcpy(firstPoint, secondPoint, fullPointLen);
-  memcpy(secondPoint, temp, fullPointLen);
-  free(temp);
+  struct lqt_point temp_point = q.points[first];
+  q.points[first]  = q.points[second];
+  q.points[second] = temp_point;
 }
 
-void sortify_bubble(unsigned char* array, const size_t len, const size_t depth) {
-  const size_t locationLen = ceil(depth / 4ul);
-  const size_t pointLen = sizeof(ord_t) + sizeof(ord_t) + sizeof(key_t);
-  const size_t fullPointLen = locationLen + pointLen;
-
-  typedef unsigned int sort_t;
-  const size_t sortDepths = ceil((depth / 4) / (double)sizeof(sort_t));
-
-  bool swapped = true;
+void sortify_bubble(struct linear_quadtree lqt) {
   // bubble sort - will iterate a maximum of n times
-  while(swapped) { 
+  for(bool swapped = true; swapped;) {
     swapped = false;
-    for(size_t i = 0, end = len * fullPointLen; i < end; i += fullPointLen) { //must be < not !=
-      if(i + fullPointLen >= len * fullPointLen)
-        break; // last point
-
-      unsigned char* point = &array[i];
-      unsigned char* nextPoint = &array[i + fullPointLen];
-
-      const sort_t* pointAsNum = (sort_t*)point;
-      const sort_t* nextPointAsNum = (sort_t*)nextPoint;
-      
-      for(size_t j = 0, jend = sortDepths; j < jend; ++j) { // must be < not !=
-        const sort_t key = pointAsNum[j];
-        const sort_t nextKey = nextPointAsNum[j];
-        if(key < nextKey)
-          break;
-        if(key > nextKey) {
-          swapify(point, nextPoint, depth);
-          swapped = true;
-          break;
-        }
-        // keys are equal - loop into next depth
+    for(size_t i = 0, end = lqt.length - 1; i != end; ++i) {
+      if(lqt.locations[i] > lqt.locations[i + 1]) {
+        swapify(lqt, i, i + 1);
+        swapped = true;
       }
     }
   }
 }
 
 struct rs_list_node {
-  unsigned char* value;
+  location_t           location;
+  struct lqt_point     point;
   struct rs_list_node* next;
 };
-
 struct rs_list {
   struct rs_list_node* head;
   struct rs_list_node* tail;
 };
-void rs_list_insert(struct rs_list* l, const unsigned char* val, const size_t val_len) {
+/// @todo determine if a location pointer is faster
+void rs_list_insert(struct rs_list* l, const location_t location, const struct lqt_point* point) {
   struct rs_list_node* n = (struct rs_list_node*)malloc(sizeof(struct rs_list_node));
-  n->value = malloc(val_len);
-  memcpy(n->value, val, val_len);
-  n->next = NULL;
+  n->location = location;
+  n->point    = *point;
+  n->next     = NULL;
+
   if(l->head == NULL) {
     l->head = n;
     l->tail = n;
@@ -161,7 +134,6 @@ void rs_list_clear(struct rs_list* l) {
   for(struct rs_list_node* node = l->head; node;) {
     struct rs_list_node* toDelete = node;
     node = node->next;
-    free(toDelete->value);
     free(toDelete);
   }
   l->head = NULL;
@@ -175,43 +147,34 @@ void rs_list_clear(struct rs_list* l) {
 /// As above, depth MUST be a multiple of 32 => the position code MUST
 /// be a multiple of 64.
 /// @todo fix this to work for depths > 32
-void sortify_radix(unsigned char* array, const size_t len, const size_t depth) {
-  typedef uint64_t sort_t;
-  const sort_t sort_t_max = ~0ULL;
-
-  const size_t locationLen = ceil(depth / 4ul);
-  const size_t pointLen = sizeof(ord_t) + sizeof(ord_t) + sizeof(key_t);
-  const size_t fullPointLen = locationLen + pointLen;
+void sortify_radix(struct linear_quadtree lqt) {
+  const location_t location_t_max = ~0ULL;
 
   struct rs_list buckets[BASE];
   for(int i = 0, end = BASE; i != end; ++i) 
     rs_list_init(&buckets[i]);
 
-  const sort_t max = sort_t_max; ///< @todo pass max? iterate to find?
-
-//  fprintf(stderr, "sr: max: %lu\n", max);
+  const location_t max = location_t_max; ///< @todo pass max? iterate to find?
 
   int i;
-  for(sort_t n = 1; max / n > 0; n *= BASE) {
-//    fprintf(stderr, "sr: base %lu\n", n);
+  for(location_t n = 1; max / n > 0; n *= BASE) {
     // sort list of numbers into buckets
-    for(i = 0; i < len; ++i) {
-      const size_t pointPos = fullPointLen * i;
-      unsigned char* thisArrayPoint = &array[pointPos];
-      const sort_t location = *((sort_t*)thisArrayPoint);
+    for(i = 0; i < lqt.length; ++i) {
+      const location_t location = lqt.locations[i];
       // replace array[i] in bucket_index with position code
       const size_t bucket_index = (location / n) % BASE;
-      rs_list_insert(&buckets[bucket_index], thisArrayPoint, fullPointLen);
+      rs_list_insert(&buckets[bucket_index], location, &lqt.points[i]);
     }
 
     // merge buckets back into list
     for(int k = i = 0; i < BASE; rs_list_clear(&buckets[i++])) {
       for(struct rs_list_node* j = buckets[i].head; j != NULL; j = j->next) {
-        memcpy(array + k * fullPointLen, j->value, fullPointLen);
+        lqt.locations[k] = j->location;
+        lqt.points[k]    = j->point;
         ++k;
       }
     }
-    if(MULT_WILL_OVERFLOW(n, BASE, sort_t_max))
+    if(MULT_WILL_OVERFLOW(n, BASE, location_t_max))
       break;
   }
   for(int i = 0, end = BASE; i != end; ++i) 
@@ -219,63 +182,26 @@ void sortify_radix(unsigned char* array, const size_t len, const size_t depth) {
 }
 
 /*
- * Sort an unsorted linear quadtree. Unsorted linear quadtrees aren't
- * very useful.
+ * Sort an unsorted linear quadtree. Unsorted linear quadtrees aren't very useful.
  *
- * @param array unsorted linear quadtree
- * @param len   number of points in the quadtree
- * @param depth depth of the quadtree. 
  */
-void sortify(unsigned char* array, const size_t len, const size_t depth) {
-  sortify_bubble(array, len, depth);
+void sortify(struct linear_quadtree lqt) {
+  sortify_bubble(lqt);
 }
-
 
 /*
  * print out a quadtree node
  * @param depth the quadtree depth. Necessary, because it indicates
  *              the number of position bit-pairs
  */
-void printNode(unsigned char* node, const size_t depth, const bool verbose) {
-  const size_t locationLen = ceil(depth / 4ul);
-
+void printNode(const location_t* location, const struct lqt_point* point, const bool verbose) {
   if(verbose)
   {
-    for(size_t i = 0, end = ceil(depth/4); i != end; ++i) {
-      const unsigned char thisByte = node[i];
-      printf("%d%d %d%d %d%d %d%d ", 
-	     ((thisByte & 0x80) == 0 ? 0 : 1), 
-	     ((thisByte & 0x40) == 0 ? 0 : 1),
-	     ((thisByte & 0x20) == 0 ? 0 : 1),
-	     ((thisByte & 0x10) == 0 ? 0 : 1),
-	     ((thisByte & 0x8) == 0 ? 0 : 1),
-	     ((thisByte & 0x4) == 0 ? 0 : 1),
-	     ((thisByte & 0x2) == 0 ? 0 : 1),
-	     ((thisByte & 0x1) == 0 ? 0 : 1));
-    }
+    for(int j = sizeof(location_t) * CHAR_BIT - 1, jend = 0; j >= jend; j -= 2)
+      printf("%lu%lu ", (*location >> j) & 0x01, (*location >> (j - 1)) & 0x01);
+    printf("%lu ", *location);
   }
-
-  typedef unsigned int sort_t;
-  const size_t sortDepths = ceil((depth / 4) / (double)sizeof(sort_t));
-  const sort_t* pointAsNum = (sort_t*)node;
-
-  if(verbose)
-  {
-    for(size_t j = 0, jend = sortDepths; j < jend; ++j) { // must be <
-      const sort_t key = pointAsNum[j];
-      printf("%u ", key);
-    }
-  }
-
-  const size_t pointXPos = locationLen;
-  const size_t pointYPos = pointXPos + sizeof(ord_t);
-  const size_t keyPos = pointYPos + sizeof(ord_t);
-
-  const ord_t* arrayPointX = (ord_t*)&node[pointXPos];
-  const ord_t* arrayPointY = (ord_t*)&node[pointYPos];
-  const key_t* arrayPointKey = (key_t*)&node[keyPos];
-
-  printf("%.15f\t%.15f\t%d\n", *arrayPointX, *arrayPointY, *arrayPointKey);
+  printf("%.15f\t%.15f\t%d\n", point->x, point->y, point->key);
 }
 
 /* 
@@ -284,23 +210,29 @@ void printNode(unsigned char* node, const size_t depth, const bool verbose) {
  * @param len the number of nodes in the quadtree
  * @param depth the depth of the quadtree.
  */
-void printNodes(unsigned char* array, const size_t len, const size_t depth, const bool verbose) {
-  const size_t locationLen = ceil(depth / 4ul);
-  const size_t pointLen = sizeof(ord_t) + sizeof(ord_t) + sizeof(key_t);
-  const size_t fullPointLen = locationLen + pointLen;
-
+void printNodes(struct linear_quadtree lqt, const bool verbose) {
   printf("linear quadtree: \n");
   if(verbose) {
-    for(size_t i = 0, end = ceil(depth/4); i < end; ++i) {
+    for(size_t i = 0, end = sizeof(location_t); i != end; ++i)
       printf("            ");
-    }
   }
 
   printf("x\ty\tkey\n");
-  for(size_t i = 0, end = len; i < end; i += fullPointLen) { // must be < not !=
-    printNode(&array[i], depth, verbose);
+  for(size_t i = 0, end = lqt.length; i != end; ++i) {
+    printNode(&lqt.locations[i], &lqt.points[i], verbose);
   }
   printf("\n");
+}
+
+/// copies the tree from the source into destination.
+/// caller takes ownership of destination, and must call delete_linear_quadtree()
+/// does not free destination, if destination is an allocated quadtree. Call delete_linear_quadtree(destination) first.
+void linear_quadtree_copy(struct linear_quadtree* destination, struct linear_quadtree* source) {
+  destination->length = source->length;
+  destination->locations = (location_t*) malloc(destination->length * sizeof(location_t));
+  memcpy(destination->locations, source->locations, source->length * sizeof(location_t));
+  destination->points = (struct lqt_point*) malloc(destination->length * sizeof(struct lqt_point));
+  memcpy(destination->points, source->points, source->length * sizeof(struct lqt_point));
 }
 
 #undef ENDIANSWAP

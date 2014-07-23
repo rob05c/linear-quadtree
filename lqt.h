@@ -2,6 +2,8 @@
 #define lqtH
 #include <stdlib.h>
 #include <stdbool.h>
+#include <stdint.h>
+#include <limits.h>
 
 // nvcc is C++, not C
 #ifdef __cplusplus
@@ -10,28 +12,39 @@ extern "C" {
 
 typedef int key_t;
 typedef float ord_t; // ordinate. There's only one, so it's not a coordinate.
-struct point {
+struct lqt_point {
   ord_t x;
   ord_t y;
   key_t key;
 };
 
-unsigned char* nodify(struct point* points, size_t len, 
-             ord_t xstart, ord_t xend, 
-             ord_t ystart, ord_t yend,
-             size_t* depth);
+typedef uint64_t location_t;
+struct linear_quadtree {
+  location_t*       locations;
+  struct lqt_point* points;
+  size_t            length;
+};
 
-unsigned char* cuda_nodify(struct point* points, size_t len, 
+#define LINEAR_QUADTREE_DEPTH (sizeof(location_t) * CHAR_BIT / 2)
+void linear_quadtree_copy(struct linear_quadtree* destination, struct linear_quadtree* source);
+void delete_linear_quadtree(struct linear_quadtree);
+
+struct linear_quadtree nodify(struct lqt_point* points, size_t len, 
+                              ord_t xstart, ord_t xend, 
+                              ord_t ystart, ord_t yend,
+                              size_t* depth);
+
+unsigned char* cuda_nodify(struct lqt_point* points, size_t len, 
                       ord_t xstart, ord_t xend, 
                       ord_t ystart, ord_t yend,
                       size_t* depth);
 
-void sortify(unsigned char* array, const size_t len, const size_t depth);
-void sortify_radix(unsigned char* array, const size_t len, const size_t depth);
-void sortify_bubble(unsigned char* array, const size_t len, const size_t depth);
+void sortify(struct linear_quadtree);
+void sortify_radix(struct linear_quadtree);
+void sortify_bubble(struct linear_quadtree);
 
-void printNode(unsigned char* node, const size_t depth, const bool verbose);
-void printNodes(unsigned char* array, const size_t len, const size_t depth, const bool verbose);
+void printNode(const location_t* location, const struct lqt_point* point, const bool verbose);
+void printNodes(struct linear_quadtree lqt, const bool verbose);
 
 #ifdef __cplusplus
 }
