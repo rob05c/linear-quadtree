@@ -37,8 +37,6 @@ struct linear_quadtree nodify(struct lqt_point* points, size_t len,
                               size_t* depth);
 
 void sortify(struct linear_quadtree);
-void sortify_radix(struct linear_quadtree);
-void sortify_bubble(struct linear_quadtree);
 
 struct linear_quadtree lqt_create_cuda(struct lqt_point* points, size_t len, 
                       ord_t xstart, ord_t xend, 
@@ -50,8 +48,8 @@ struct linear_quadtree cuda_nodify(struct lqt_point* points, size_t len,
                       size_t* depth);
 struct linear_quadtree cuda_sortify(struct linear_quadtree);
 
-void printNode(const location_t* location, const struct lqt_point* point, const bool verbose);
-void printNodes(struct linear_quadtree lqt, const bool verbose);
+void lqt_print_node(const location_t* location, const struct lqt_point* point, const bool verbose);
+void lqt_print_nodes(struct linear_quadtree lqt, const bool verbose);
 
 #ifdef __cplusplus
 }

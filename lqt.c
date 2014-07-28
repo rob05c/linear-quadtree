@@ -65,33 +65,6 @@ struct linear_quadtree nodify(struct lqt_point* points, size_t len,
   return lqt;
 }
 
-/*
- * swap the memory of the given quadtree points
- * DO NOT change this to use the XOR trick, unless you speed test it first.
- */
-static inline void swapify(struct linear_quadtree q, const size_t first, const size_t second) {
-  const location_t temp_location = q.locations[first];
-  q.locations[first]  = q.locations[second];
-  q.locations[second] = temp_location;
-
-  struct lqt_point temp_point = q.points[first];
-  q.points[first]  = q.points[second];
-  q.points[second] = temp_point;
-}
-
-void sortify_bubble(struct linear_quadtree lqt) {
-  // bubble sort - will iterate a maximum of n times
-  for(bool swapped = true; swapped;) {
-    swapped = false;
-    for(size_t i = 0, end = lqt.length - 1; i != end; ++i) {
-      if(lqt.locations[i] > lqt.locations[i + 1]) {
-        swapify(lqt, i, i + 1);
-        swapped = true;
-      }
-    }
-  }
-}
-
 struct rs_list_node {
   location_t           location;
   struct lqt_point     point;
@@ -130,16 +103,12 @@ void rs_list_clear(struct rs_list* l) {
   l->tail = NULL;
 }
 
-/// @todo change this to not be global
+/// @todo fix this to not be global
 #define BASE 10 
 #define MULT_WILL_OVERFLOW(a, b, typemax) ((b) > (typemax) / (a))
 
-/// As above, depth MUST be a multiple of 32 => the position code MUST
-/// be a multiple of 64.
-/// @todo fix this to work for depths > 32
-void sortify_radix(struct linear_quadtree lqt) {
-
-
+// radix sort an unsorted quadtree
+void sortify(struct linear_quadtree lqt) {
   struct rs_list buckets[BASE];
   for(int i = 0, end = BASE; i != end; ++i) 
     rs_list_init(&buckets[i]);
@@ -172,19 +141,11 @@ void sortify_radix(struct linear_quadtree lqt) {
 }
 
 /*
- * Sort an unsorted linear quadtree. Unsorted linear quadtrees aren't very useful.
- *
- */
-void sortify(struct linear_quadtree lqt) {
-  sortify_bubble(lqt);
-}
-
-/*
  * print out a quadtree node
  * @param depth the quadtree depth. Necessary, because it indicates
  *              the number of position bit-pairs
  */
-void printNode(const location_t* location, const struct lqt_point* point, const bool verbose) {
+void lqt_print_node(const location_t* location, const struct lqt_point* point, const bool verbose) {
   if(verbose)
   {
     for(int j = sizeof(location_t) * CHAR_BIT - 1, jend = 0; j >= jend; j -= 2)
@@ -200,7 +161,7 @@ void printNode(const location_t* location, const struct lqt_point* point, const 
  * @param len the number of nodes in the quadtree
  * @param depth the depth of the quadtree.
  */
-void printNodes(struct linear_quadtree lqt, const bool verbose) {
+void lqt_print_nodes(struct linear_quadtree lqt, const bool verbose) {
   printf("linear quadtree: \n");
   if(verbose) {
     for(size_t i = 0, end = sizeof(location_t); i != end; ++i)
@@ -209,7 +170,7 @@ void printNodes(struct linear_quadtree lqt, const bool verbose) {
 
   printf("x\ty\tkey\n");
   for(size_t i = 0, end = lqt.length; i != end; ++i) {
-    printNode(&lqt.locations[i], &lqt.points[i], verbose);
+    lqt_print_node(&lqt.locations[i], &lqt.points[i], verbose);
   }
   printf("\n");
 }
