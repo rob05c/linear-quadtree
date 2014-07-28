@@ -30,8 +30,8 @@ struct linear_quadtree {
 };
 
 #define LINEAR_QUADTREE_DEPTH (sizeof(location_t) * CHAR_BIT / 2)
-void linear_quadtree_copy(struct linear_quadtree* destination, struct linear_quadtree* source);
-void delete_linear_quadtree(struct linear_quadtree);
+void lqt_copy(struct linear_quadtree* destination, struct linear_quadtree* source);
+void lqt_delete(struct linear_quadtree);
 
 struct linear_quadtree nodify(struct lqt_point* points, size_t len, 
                               ord_t xstart, ord_t xend, 

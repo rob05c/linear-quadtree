@@ -69,7 +69,7 @@ static inline void test_many() {
     sortify(lqt);
     printf("\ndone\n");
     printNodes(lqt, false);
-    delete_linear_quadtree(lqt);
+    lqt_delete(lqt);
   }
 
   {
@@ -80,7 +80,7 @@ static inline void test_many() {
     sortify(lqt);
     printf("\ncuda done\n");
     printNodes(lqt, false);
-    delete_linear_quadtree(lqt);
+    lqt_delete(lqt);
   }
 
 }
@@ -142,7 +142,7 @@ static inline void test_few() {
     sortify(lqt);
     printf("\ndone\n");
     printNodes(lqt, true);
-    delete_linear_quadtree(lqt);
+    lqt_delete(lqt);
   }
 
   {
@@ -179,7 +179,7 @@ static inline void test_time() {
   const clock_t end = clock();
   const double elapsed_s = (end - start) / (double)CLOCKS_PER_SEC;
   printf("cpu nodify time: %fs\n", elapsed_s);
-  delete_linear_quadtree(lqt);
+  lqt_delete(lqt);
   // lqt and points not valid henceforth and hereafter.
 
   printf("creating cuda points...\n");
@@ -200,7 +200,7 @@ static inline void test_time() {
   const double speedup = elapsed_s / elapsed_s_cuda;
   printf("gpu nodify time: %fs\n", elapsed_s_cuda);
   printf("gpu speedup: %f\n", speedup);
-  delete_linear_quadtree(cuda_lqt);
+  lqt_delete(cuda_lqt);
 }
 
 static inline void test_sorts() {
@@ -222,10 +222,10 @@ static inline void test_sorts() {
   struct linear_quadtree qt_bubble = nodify(points, numPoints, 
                                             min, max, min, max, &depth);
   struct linear_quadtree qt_radix;
-  linear_quadtree_copy(&qt_radix, &qt_bubble);
+  lqt_copy(&qt_radix, &qt_bubble);
 
   struct linear_quadtree qt_cuda;
-  linear_quadtree_copy(&qt_cuda, &qt_bubble);
+  lqt_copy(&qt_cuda, &qt_bubble);
 
 
   printf("sorting bubble...\n");
@@ -242,9 +242,9 @@ static inline void test_sorts() {
   printf("cuda nodes:\n");
   printNodes(qt_cuda, false);
 
-  delete_linear_quadtree(qt_bubble);
-  delete_linear_quadtree(qt_radix);
-  delete_linear_quadtree(qt_cuda);
+  lqt_delete(qt_bubble);
+  lqt_delete(qt_radix);
+  lqt_delete(qt_cuda);
 }
 
 static inline void test_sort_time() {
@@ -265,7 +265,7 @@ static inline void test_sort_time() {
   struct linear_quadtree qt_radix = nodify(points, numPoints, 
                                             min, max, min, max, &depth);
   struct linear_quadtree qt_cuda;
-  linear_quadtree_copy(&qt_cuda, &qt_radix);
+  lqt_copy(&qt_cuda, &qt_radix);
 
   printf("sorting radix...\n");
   const clock_t start_radix = clock();
@@ -283,8 +283,8 @@ static inline void test_sort_time() {
   printf("cuda sort time: %fs\n", elapsed_s_cuda);
   printf("cuda speedup: %f\n", cuda_speedup);
 
-  delete_linear_quadtree(qt_radix);
-  delete_linear_quadtree(qt_cuda);
+  lqt_delete(qt_radix);
+  lqt_delete(qt_cuda);
 }
 
 int main() {

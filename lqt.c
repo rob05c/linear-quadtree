@@ -6,7 +6,7 @@
 
 const location_t location_t_max = ~0ULL;
 
-void delete_linear_quadtree(struct linear_quadtree q) {
+void lqt_delete(struct linear_quadtree q) {
   free(q.locations);
   free(q.points);
 }
@@ -217,7 +217,7 @@ void printNodes(struct linear_quadtree lqt, const bool verbose) {
 /// copies the tree from the source into destination.
 /// caller takes ownership of destination, and must call delete_linear_quadtree()
 /// does not free destination, if destination is an allocated quadtree. Call delete_linear_quadtree(destination) first.
-void linear_quadtree_copy(struct linear_quadtree* destination, struct linear_quadtree* source) {
+void lqt_copy(struct linear_quadtree* destination, struct linear_quadtree* source) {
   destination->length = source->length;
   destination->locations = (location_t*) malloc(destination->length * sizeof(location_t));
   memcpy(destination->locations, source->locations, source->length * sizeof(location_t));
