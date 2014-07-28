@@ -21,8 +21,6 @@ struct lqt_point {
 typedef uint64_t location_t;
 extern const location_t location_t_max;
 
-
-
 struct linear_quadtree {
   location_t*       locations;
   struct lqt_point* points;
@@ -54,8 +52,6 @@ struct linear_quadtree cuda_sortify(struct linear_quadtree);
 
 void printNode(const location_t* location, const struct lqt_point* point, const bool verbose);
 void printNodes(struct linear_quadtree lqt, const bool verbose);
-
-void test_cub();
 
 #ifdef __cplusplus
 }
