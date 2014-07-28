@@ -45,6 +45,13 @@ __global__ void cuda_cuda_nodify(struct lqt_point* points, location_t* locations
   }
 }
 
+struct linear_quadtree lqt_create_cuda(struct lqt_point* points, size_t len, 
+                                       ord_t xstart, ord_t xend, 
+                                       ord_t ystart, ord_t yend,
+                                       size_t* depth) {
+  return cuda_sortify(cuda_nodify(points, len, xstart, xend, ystart, yend, depth));
+}
+
 struct linear_quadtree cuda_nodify(struct lqt_point* points, size_t len, 
              ord_t xstart, ord_t xend, 
              ord_t ystart, ord_t yend,
@@ -55,6 +62,7 @@ struct linear_quadtree cuda_nodify(struct lqt_point* points, size_t len,
 
   location_t*       cuda_locations;
   struct lqt_point* cuda_points;
+
   cudaMalloc((void**)&cuda_locations, len * sizeof(location_t));
   cudaMalloc((void**)&cuda_points, len * sizeof(struct lqt_point));
   cudaMemcpy(cuda_points, points, len * sizeof(struct lqt_point), cudaMemcpyHostToDevice);
@@ -78,7 +86,7 @@ struct linear_quadtree cuda_nodify(struct lqt_point* points, size_t len,
   return lqt;
 }
 
-void cuda_sortify(struct linear_quadtree lqt) {
+struct linear_quadtree cuda_sortify(struct linear_quadtree lqt) {
   DoubleBuffer<location_t> d_keys;
   DoubleBuffer<lqt_point> d_values;
   CubDebugExit(g_allocator.DeviceAllocate((void**)&d_keys.d_buffers[0], sizeof(location_t) * lqt.length));
@@ -110,6 +118,7 @@ void cuda_sortify(struct linear_quadtree lqt) {
   CubDebugExit( g_allocator.DeviceFree(d_values.d_buffers[0]));
   CubDebugExit( g_allocator.DeviceFree(d_values.d_buffers[1]));
   CubDebugExit( g_allocator.DeviceFree(d_temp_storage));
+  return lqt;
 }
 
 void print_array_uint(unsigned int* array, const size_t len) {
