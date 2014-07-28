@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <stdint.h>
 
+const location_t location_t_max = ~0ULL;
+
 void delete_linear_quadtree(struct linear_quadtree q) {
   free(q.locations);
   free(q.points);
@@ -136,7 +138,7 @@ void rs_list_clear(struct rs_list* l) {
 /// be a multiple of 64.
 /// @todo fix this to work for depths > 32
 void sortify_radix(struct linear_quadtree lqt) {
-  const location_t location_t_max = ~0ULL;
+
 
   struct rs_list buckets[BASE];
   for(int i = 0, end = BASE; i != end; ++i) 

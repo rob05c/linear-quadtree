@@ -11,7 +11,7 @@ static inline ord_t uniformFrand(const ord_t min, const ord_t max) {
   return min + r * (max - min);
 }
 
-void test_endian_2() {
+static inline void test_endian_2() {
   printf("test_endian_2\n");
 
 //  static_assert(sizeof(unsigned int) == 4, "sizeof(int) is not 4, fix the below code")
@@ -47,7 +47,7 @@ void test_endian_2() {
   printf("endian: %u\n", *iarray);
 }
 
-void test_many() {
+static inline void test_many() {
   printf("test_many\n");
   const size_t len = 10000;
   struct lqt_point* points = malloc(len * sizeof(struct lqt_point));
@@ -85,7 +85,7 @@ void test_many() {
 
 }
 
-void test_endian() {
+static inline void test_endian() {
   printf("test_endian\n");
   typedef unsigned char uchar;
   typedef unsigned long sort_t;
@@ -119,7 +119,7 @@ void test_endian() {
   printf("eval %lu\n", val);
 }
 
-void test_few() {
+static inline void test_few() {
   printf("test_few\n");
   const size_t len = 2;
   struct lqt_point* points = malloc(len * sizeof(struct lqt_point));
@@ -158,7 +158,7 @@ void test_few() {
 
 }
 
-void test_time() {
+static inline void test_time() {
   printf("test_time\n");
   const size_t numPoints = 100000000;
   struct lqt_point* points = malloc(sizeof(struct lqt_point) * numPoints);
@@ -203,10 +203,10 @@ void test_time() {
   delete_linear_quadtree(cuda_lqt);
 }
 
-void test_sorts() {
+static inline void test_sorts() {
   printf("test_sorts\n");
 
-  const size_t numPoints = 10000;
+  const size_t numPoints = 10;
   struct lqt_point* points = malloc(numPoints * sizeof(struct lqt_point));
   const size_t min = 1000;
   const size_t max = 1100;
@@ -224,21 +224,32 @@ void test_sorts() {
   struct linear_quadtree qt_radix;
   linear_quadtree_copy(&qt_radix, &qt_bubble);
 
+  struct linear_quadtree qt_cuda;
+  linear_quadtree_copy(&qt_cuda, &qt_bubble);
+
+
   printf("sorting bubble...\n");
   sortify_bubble(qt_bubble);
   printf("sorting radix...\n");
   sortify_radix(qt_radix);
+  printf("sorting cuda...\n");
+  cuda_sortify(qt_cuda);
+
   printf("bubble nodes:\n");
   printNodes(qt_bubble, false);
   printf("radix nodes:\n");
   printNodes(qt_radix, false);
+  printf("cuda nodes:\n");
+  printNodes(qt_cuda, false);
+
   delete_linear_quadtree(qt_bubble);
   delete_linear_quadtree(qt_radix);
+  delete_linear_quadtree(qt_cuda);
 }
 
-void test_sort_time() {
+static inline void test_sort_time() {
   printf("test_sort_time\n");
-  const size_t numPoints = 100000;
+  const size_t numPoints = 100000000;
   struct lqt_point* points = malloc(sizeof(struct lqt_point) * numPoints);
   const size_t min = 1000;
   const size_t max = 1100;
@@ -251,35 +262,35 @@ void test_sort_time() {
 
   printf("creating nodes...\n");
   size_t depth;
-  struct linear_quadtree qt_bubble = nodify(points, numPoints, 
+  struct linear_quadtree qt_radix = nodify(points, numPoints, 
                                             min, max, min, max, &depth);
-  struct linear_quadtree qt_radix;
-  linear_quadtree_copy(&qt_radix, &qt_bubble);
-
-  printf("sorting bubble...\n");
-  const clock_t start = clock();
-  sortify_bubble(qt_bubble);
-  const clock_t end = clock();
-  const double elapsed_s = (end - start) / (double)CLOCKS_PER_SEC;
-  printf("bubble sort time: %fs\n", elapsed_s);
+  struct linear_quadtree qt_cuda;
+  linear_quadtree_copy(&qt_cuda, &qt_radix);
 
   printf("sorting radix...\n");
   const clock_t start_radix = clock();
   sortify_radix(qt_radix);
   const clock_t end_radix = clock();
   const double elapsed_s_radix = (end_radix - start_radix) / (double)CLOCKS_PER_SEC;
-  const double speedup = elapsed_s / elapsed_s_radix;
   printf("radix sort time: %fs\n", elapsed_s_radix);
-  printf("radix speedup: %f\n", speedup);
-  delete_linear_quadtree(qt_bubble);
-  delete_linear_quadtree(qt_radix);
-}
 
+  printf("sorting cuda...\n");
+  const clock_t start_cuda = clock();
+  cuda_sortify(qt_cuda);
+  const clock_t end_cuda = clock();
+  const double elapsed_s_cuda = (end_cuda - start_cuda) / (double)CLOCKS_PER_SEC;
+  const double cuda_speedup = elapsed_s_radix / elapsed_s_cuda;
+  printf("cuda sort time: %fs\n", elapsed_s_cuda);
+  printf("cuda speedup: %f\n", cuda_speedup);
+
+  delete_linear_quadtree(qt_radix);
+  delete_linear_quadtree(qt_cuda);
+}
 
 int main() {
   srand(time(NULL));
 
-  test_time();
+  test_sort_time();
   printf("\n");
   return 0;
 }
