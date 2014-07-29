@@ -280,7 +280,7 @@ static inline void test_sort_time() {
 
 static inline void test_unified() {
   printf("test_unified\n");
-  const size_t numPoints = 10000000;
+  const size_t numPoints = 1000000;
   struct lqt_point* points = malloc(sizeof(struct lqt_point) * numPoints);
   const size_t min = 1000;
   const size_t max = 1100;
@@ -314,8 +314,6 @@ static inline void test_unified() {
   printf("cuda time: %fs\n", elapsed_s_cuda);
   printf("ms per cuda point: %f\n", 1000.0 * elapsed_s_cuda / numPoints);
   printf("cuda speedup: %f\n", cuda_speedup);
-
-
 
   lqt_delete(qt);
   lqt_delete(qt_cuda);
