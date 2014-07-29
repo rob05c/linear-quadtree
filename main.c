@@ -278,10 +278,53 @@ static inline void test_sort_time() {
   lqt_delete(qt_cuda);
 }
 
+static inline void test_unified() {
+  printf("test_unified\n");
+  const size_t numPoints = 10000000;
+  struct lqt_point* points = malloc(sizeof(struct lqt_point) * numPoints);
+  const size_t min = 1000;
+  const size_t max = 1100;
+  printf("creating points...\n");
+  for(int i = 0, end = numPoints; i != end; ++i) {
+    points[i].x = uniformFrand(min, max);
+    points[i].y = uniformFrand(min, max);
+    points[i].key = i;
+  }
+  struct lqt_point* points_cuda = malloc(numPoints * sizeof(struct lqt_point));
+  memcpy(points_cuda, points, numPoints * sizeof(struct lqt_point));
+
+  printf("points: %lu\n", numPoints);
+  printf("creating quadtree...\n");
+  const clock_t start = clock();
+  size_t depth;
+  struct linear_quadtree qt = lqt_create(points, numPoints, 
+                                         min, max, min, max, &depth);
+  const clock_t end = clock();
+  const double elapsed_s = (end - start) / (double)CLOCKS_PER_SEC;
+  printf("cpu time: %fs\n", elapsed_s);
+  printf("ms per point: %f\n", 1000.0 * elapsed_s / numPoints);
+
+  printf("creating quadtree with CUDA...\n");
+  const clock_t start_cuda = clock();
+  struct linear_quadtree qt_cuda = lqt_create_cuda(points_cuda, numPoints, 
+                                                   min, max, min, max, &depth);
+  const clock_t end_cuda = clock();
+  const double elapsed_s_cuda = (end_cuda - start_cuda) / (double)CLOCKS_PER_SEC;
+  const double cuda_speedup = elapsed_s / elapsed_s_cuda;
+  printf("cuda time: %fs\n", elapsed_s_cuda);
+  printf("ms per cuda point: %f\n", 1000.0 * elapsed_s_cuda / numPoints);
+  printf("cuda speedup: %f\n", cuda_speedup);
+
+
+
+  lqt_delete(qt);
+  lqt_delete(qt_cuda);
+}
+
 int main() {
   srand(time(NULL));
 
-  test_sort_time();
+  test_unified();
   printf("\n");
   return 0;
 }
