@@ -11,23 +11,26 @@ void lqt_delete(struct linear_quadtree q) {
   free(q.points);
 }
 
+/// @param points points to construct a quadtree from. Takes ownership. MUST be dynamically allocated
+/// @return linear quadtree. Caller takes ownership and must call lqt_delete()
+struct linear_quadtree lqt_create(struct lqt_point* points, size_t len, 
+             ord_t xstart, ord_t xend, 
+             ord_t ystart, ord_t yend,
+             size_t* depth) {
+  return lqt_sortify(lqt_nodify(points, len, xstart, xend, ystart, yend, depth));
+}
 /* 
  * Turn an array of points into an unsorted quadtree of nodes.
  * You'll probably want to call sortify() to sort the list into a
  * useful quadtree.
  *
- * array is of form [fullpoint0, fullpoint1, ...] where 
- * fullpoint = [locationcode, x, y, key] where
- * sizeof(locationcode) = ceil(*depth / 4ul), x, y are of type ord_t, key is of type key_t
- *
- * 
  * @param points points to create a quadtree from. Takes ownership. MUST be dynamically allocated
  *
  * @param[out] depth the depth of the quadtree. This is important for
  *             a linear quadtree, as it signifies the number of
  *             identifying bit-pairs preceding the node
  *
- * @return a new unsorted linear_quadtree. caller takes ownership, and must call delete_linear_quadtree()
+ * @return a new unsorted linear_quadtree. caller takes ownership, and must call lqt_delete()
  */
 struct linear_quadtree lqt_nodify(struct lqt_point* points, size_t len, 
              ord_t xstart, ord_t xend, 
@@ -108,7 +111,7 @@ void rs_list_clear(struct rs_list* l) {
 #define MULT_WILL_OVERFLOW(a, b, typemax) ((b) > (typemax) / (a))
 
 // radix sort an unsorted quadtree
-void lqt_sortify(struct linear_quadtree lqt) {
+struct linear_quadtree lqt_sortify(struct linear_quadtree lqt) {
   struct rs_list buckets[BASE];
   for(int i = 0, end = BASE; i != end; ++i) 
     rs_list_init(&buckets[i]);
@@ -138,6 +141,7 @@ void lqt_sortify(struct linear_quadtree lqt) {
   }
   for(int i = 0, end = BASE; i != end; ++i) 
     rs_list_clear(&buckets[i]);
+  return lqt;
 }
 
 /*
