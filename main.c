@@ -63,10 +63,10 @@ static inline void test_many() {
   {
     printf("creating nodes...\n");
     size_t depth;
-    struct linear_quadtree lqt = nodify(points, len, 
+    struct linear_quadtree lqt = lqt_nodify(points, len, 
                                                      min, max, min, max, &depth);
     printf("sorting...\n");
-    sortify(lqt);
+    lqt_sortify(lqt);
     printf("\ndone\n");
     lqt_print_nodes(lqt, false);
     lqt_delete(lqt);
@@ -75,9 +75,9 @@ static inline void test_many() {
   {
     printf("cuda creating nodes...\n");
     size_t depth;
-    struct linear_quadtree lqt = cuda_nodify(points, len, min, max, min, max, &depth);
+    struct linear_quadtree lqt = lqt_nodify_cuda(points, len, min, max, min, max, &depth);
     printf("cuda sorting...\n");
-    sortify(lqt);
+    lqt_sortify_cuda(lqt);
     printf("\ncuda done\n");
     lqt_print_nodes(lqt, false);
     lqt_delete(lqt);
@@ -136,10 +136,10 @@ static inline void test_few() {
   {
     printf("creating nodes...\n");
     size_t depth;
-    struct linear_quadtree lqt = nodify(points, len, 
+    struct linear_quadtree lqt = lqt_nodify(points, len, 
                                         min, max, min, max, &depth);
     printf("sorting...\n");
-    sortify(lqt);
+    lqt_sortify(lqt);
     printf("\ndone\n");
     lqt_print_nodes(lqt, true);
     lqt_delete(lqt);
@@ -148,10 +148,10 @@ static inline void test_few() {
   {
     printf("cuda creating nodes...\n");
     size_t depth;
-    struct linear_quadtree lqt = cuda_nodify(points, len, 
+    struct linear_quadtree lqt = lqt_nodify_cuda(points, len, 
                                              min, max, min, max, &depth);
     printf("cuda sorting...\n");
-    sortify(lqt);
+    lqt_sortify_cuda(lqt);
     printf("\ncuda done\n");
     lqt_print_nodes(lqt, true);
   }
@@ -174,7 +174,7 @@ static inline void test_time() {
   size_t depth;
   printf("cpu nodify...\n");
   const clock_t start = clock();
-  struct linear_quadtree lqt = nodify(points, numPoints, 
+  struct linear_quadtree lqt = lqt_nodify(points, numPoints, 
                                       min, max, min, max, &depth);
   const clock_t end = clock();
   const double elapsed_s = (end - start) / (double)CLOCKS_PER_SEC;
@@ -193,7 +193,7 @@ static inline void test_time() {
 
   printf("gpu nodify...\n");
   const clock_t start_cuda = clock();
-  struct linear_quadtree cuda_lqt = cuda_nodify(cuda_points, numPoints, 
+  struct linear_quadtree cuda_lqt = lqt_nodify_cuda(cuda_points, numPoints, 
                                                 min, max, min, max, &depth);
   const clock_t end_cuda = clock();
   const double elapsed_s_cuda = (end_cuda - start_cuda) / (double)CLOCKS_PER_SEC;
@@ -219,16 +219,15 @@ static inline void test_sorts() {
 
   printf("creating nodes...\n");
   size_t depth;
-  struct linear_quadtree qt = nodify(points, numPoints, 
+  struct linear_quadtree qt = lqt_nodify(points, numPoints, 
                                             min, max, min, max, &depth);
   struct linear_quadtree qt_cuda;
   lqt_copy(&qt_cuda, &qt);
 
-
   printf("sorting...\n");
-  sortify(qt);
+  lqt_sortify(qt);
   printf("sorting cuda...\n");
-  cuda_sortify(qt_cuda);
+  lqt_sortify_cuda(qt_cuda);
 
   printf("nodes:\n");
   lqt_print_nodes(qt, false);
@@ -254,21 +253,21 @@ static inline void test_sort_time() {
 
   printf("creating nodes...\n");
   size_t depth;
-  struct linear_quadtree qt = nodify(points, numPoints, 
+  struct linear_quadtree qt = lqt_nodify(points, numPoints, 
                                      min, max, min, max, &depth);
   struct linear_quadtree qt_cuda;
   lqt_copy(&qt_cuda, &qt);
 
   printf("sorting...\n");
   const clock_t start = clock();
-  sortify(qt);
+  lqt_sortify(qt);
   const clock_t end = clock();
   const double elapsed_s = (end - start) / (double)CLOCKS_PER_SEC;
   printf("sort time: %fs\n", elapsed_s);
 
   printf("sorting cuda...\n");
   const clock_t start_cuda = clock();
-  cuda_sortify(qt_cuda);
+  lqt_sortify_cuda(qt_cuda);
   const clock_t end_cuda = clock();
   const double elapsed_s_cuda = (end_cuda - start_cuda) / (double)CLOCKS_PER_SEC;
   const double cuda_speedup = elapsed_s / elapsed_s_cuda;

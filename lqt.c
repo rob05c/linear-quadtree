@@ -29,7 +29,7 @@ void lqt_delete(struct linear_quadtree q) {
  *
  * @return a new unsorted linear_quadtree. caller takes ownership, and must call delete_linear_quadtree()
  */
-struct linear_quadtree nodify(struct lqt_point* points, size_t len, 
+struct linear_quadtree lqt_nodify(struct lqt_point* points, size_t len, 
              ord_t xstart, ord_t xend, 
              ord_t ystart, ord_t yend,
              size_t* depth) {
@@ -108,7 +108,7 @@ void rs_list_clear(struct rs_list* l) {
 #define MULT_WILL_OVERFLOW(a, b, typemax) ((b) > (typemax) / (a))
 
 // radix sort an unsorted quadtree
-void sortify(struct linear_quadtree lqt) {
+void lqt_sortify(struct linear_quadtree lqt) {
   struct rs_list buckets[BASE];
   for(int i = 0, end = BASE; i != end; ++i) 
     rs_list_init(&buckets[i]);
