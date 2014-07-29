@@ -10,7 +10,7 @@ static inline ord_t uniformFrand(const ord_t min, const ord_t max) {
   const double r = (double)rand() / RAND_MAX;
   return min + r * (max - min);
 }
-
+/*
 static inline void test_endian_2() {
   printf("test_endian_2\n");
 
@@ -277,7 +277,7 @@ static inline void test_sort_time() {
   lqt_delete(qt);
   lqt_delete(qt_cuda);
 }
-
+*/
 static inline void test_unified() {
   printf("test_unified\n");
   const size_t numPoints = 1000000;

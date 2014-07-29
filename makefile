@@ -1,8 +1,8 @@
-CC=c99
-FLAGS=-Wall -Wpedantic -Werror -Wfatal-errors -g
+CC=clang
+FLAGS=-std=c99 -Wall -Wpedantic -Werror -Wfatal-errors -g
 CUDA_CC=nvcc
 CUDA_FLAGS= -I /opt/cuda/include -I ../../cuda/cub-1.3.1 -Xptxas -Werror
-LINK_CC=g++
+LINK_CC=clang++
 LINK_FLAGS=-L/opt/cuda/lib64 -lcuda -lcudart
 
 all: lqt.o main.o lqtcuda.o
