@@ -10,8 +10,8 @@ static inline ord_t uniformFrand(const ord_t min, const ord_t max) {
   const double r = (double)rand() / RAND_MAX;
   return min + r * (max - min);
 }
-/*
-static inline void test_endian_2() {
+
+static inline void test_endian_2(const size_t len) {
   printf("test_endian_2\n");
 
 //  static_assert(sizeof(unsigned int) == 4, "sizeof(int) is not 4, fix the below code")
@@ -47,9 +47,8 @@ static inline void test_endian_2() {
   printf("endian: %u\n", *iarray);
 }
 
-static inline void test_many() {
+static inline void test_many(const size_t len) {
   printf("test_many\n");
-  const size_t len = 10000;
   struct lqt_point* points = malloc(len * sizeof(struct lqt_point));
   const size_t min = 1000;
   const size_t max = 1100;
@@ -85,7 +84,7 @@ static inline void test_many() {
 
 }
 
-static inline void test_endian() {
+static inline void test_endian(const size_t len) {
   printf("test_endian\n");
   typedef unsigned char uchar;
   typedef unsigned long sort_t;
@@ -119,9 +118,8 @@ static inline void test_endian() {
   printf("eval %lu\n", val);
 }
 
-static inline void test_few() {
+static inline void test_few(const size_t len) {
   printf("test_few\n");
-  const size_t len = 2;
   struct lqt_point* points = malloc(len * sizeof(struct lqt_point));
   const ord_t min = 0.0;
   const ord_t max = 300.0;
@@ -158,9 +156,8 @@ static inline void test_few() {
 
 }
 
-static inline void test_time() {
+static inline void test_time(const size_t numPoints) {
   printf("test_time\n");
-  const size_t numPoints = 100000000;
   struct lqt_point* points = malloc(sizeof(struct lqt_point) * numPoints);
   const size_t min = 1000;
   const size_t max = 1100;
@@ -203,10 +200,9 @@ static inline void test_time() {
   lqt_delete(cuda_lqt);
 }
 
-static inline void test_sorts() {
+static inline void test_sorts(const size_t numPoints) {
   printf("test_sorts\n");
 
-  const size_t numPoints = 10;
   struct lqt_point* points = malloc(numPoints * sizeof(struct lqt_point));
   const size_t min = 1000;
   const size_t max = 1100;
@@ -238,9 +234,8 @@ static inline void test_sorts() {
   lqt_delete(qt_cuda);
 }
 
-static inline void test_sort_time() {
+static inline void test_sort_time(const size_t numPoints) {
   printf("test_sort_time\n");
-  const size_t numPoints = 1000000;
   struct lqt_point* points = malloc(sizeof(struct lqt_point) * numPoints);
   const size_t min = 1000;
   const size_t max = 1100;
@@ -277,10 +272,9 @@ static inline void test_sort_time() {
   lqt_delete(qt);
   lqt_delete(qt_cuda);
 }
-*/
-static inline void test_unified() {
+
+static inline void test_unified(const size_t numPoints) {
   printf("test_unified\n");
-  const size_t numPoints = 1000000;
   struct lqt_point* points = malloc(sizeof(struct lqt_point) * numPoints);
   const size_t min = 1000;
   const size_t max = 1100;
@@ -319,10 +313,81 @@ static inline void test_unified() {
   lqt_delete(qt_cuda);
 }
 
-int main() {
+void(*test_funcs[])(const size_t) = {
+  test_endian_2,
+  test_many,
+  test_endian,
+  test_few,
+  test_time,
+  test_sorts,
+  test_sort_time,
+  test_unified,
+};
+
+static const char* default_app_name = "mergesort";
+
+const char* tests[][2] = {
+  {"test_endian_2"  , "test endianness conversions between 4-byte array"},
+  {"test_many"      , "print brief reports for many points"},
+  {"test_endian"    , "test endian shifting in 4-byte array"},
+  {"test_few"       , "print detailed reports for a few points"},
+  {"test_time"      , "benchmark the time to create nodes using CPU vs CUDA"},
+  {"test_sorts"     , "test the values produced by sorting with CPU vs CUDA"},
+  {"test_sort_time" , "benchmark the time to sort using CPU vs CUDA"},
+  {"test_unified"   , "benchmark the time to create and sort using CPU vs CUDA"},
+};
+
+const size_t test_num = sizeof(tests) / (sizeof(const char*) * 2);
+
+struct app_arguments {
+  bool        success;
+  const char* app_name;
+  size_t      test_num;
+  size_t      array_size;
+};
+
+static struct app_arguments parseArgs(const int argc, const char** argv) {
+  struct app_arguments args;
+  args.success = false;
+
+  if(argc < 1)
+    return args;
+  args.app_name = argv[0];
+
+  if(argc < 2)
+    return args;
+  args.test_num = strtol(argv[1], NULL, 10);
+
+  if(argc < 3)
+    return args;
+  args.array_size = strtol(argv[2], NULL, 10);
+
+  args.success = true;
+  return args;
+}
+
+/// \param[out] msg
+/// \param[out] msg_len
+static void print_usage(const char* app_name) {
+  printf("usage: %s test_num  array_size\n", strlen(app_name) == 0 ? default_app_name : app_name);
+  printf("\n");
+  printf("       num test            description\n");
+  for(size_t i = 0, end = test_num; i != end; ++i) {
+    printf("       %-3.1lu %-15.15s %s\n", i, tests[i][0], tests[i][1]);
+  }
+  printf("\n");
+}
+
+int main(const int argc, const char** argv) {
   srand(time(NULL));
 
-  test_unified();
+  const struct app_arguments args = parseArgs(argc, argv);
+  if(!args.success) {
+    print_usage(args.app_name);
+    return 0;
+  }
+
+  test_funcs[args.test_num](args.array_size);
   printf("\n");
   return 0;
 }
