@@ -121,6 +121,7 @@ struct linear_quadtree lqt_create_cuda(struct lqt_point* points, size_t len,
   size_t cuda_mem_free = 0;
   size_t cuda_mem_total = 0;
   CubDebugExit(cudaMemGetInfo(&cuda_mem_free, &cuda_mem_total));
+  cuda_mem_free = cuda_mem_free / 5 * 4; // wiggle room <('.'<) <('.' )> (>'.')>
 
   const size_t array_size = (sizeof(struct lqt_point) + sizeof(location_t)) * len * 2; // *2 for double-buffers
   const size_t num_blocks = array_size / cuda_mem_free + 1;
