@@ -273,6 +273,38 @@ static inline void test_sort_time(const size_t numPoints) {
   lqt_delete(qt_cuda);
 }
 
+static inline void test_unified_sorts(const size_t numPoints) {
+  printf("test_unified_sorts\n");
+  struct lqt_point* points = malloc(sizeof(struct lqt_point) * numPoints);
+  const size_t min = 1000;
+  const size_t max = 1100;
+  printf("creating points...\n");
+  for(int i = 0, end = numPoints; i != end; ++i) {
+    points[i].x = uniformFrand(min, max);
+    points[i].y = uniformFrand(min, max);
+    points[i].key = i;
+  }
+  struct lqt_point* points_cuda = malloc(numPoints * sizeof(struct lqt_point));
+  memcpy(points_cuda, points, numPoints * sizeof(struct lqt_point));
+
+  printf("points: %lu\n", numPoints);
+
+  printf("creating quadtree...\n");
+  size_t depth;
+  struct linear_quadtree qt = lqt_create(points, numPoints, 
+                                         min, max, min, max, &depth);
+  printf("creating quadtree with CUDA...\n");
+  struct linear_quadtree qt_cuda = lqt_create_cuda(points_cuda, numPoints, 
+                                                   min, max, min, max, &depth);
+  printf("nodes:\n");
+  lqt_print_nodes(qt, false);
+  printf("cuda nodes:\n");
+  lqt_print_nodes(qt_cuda, false);
+
+  lqt_delete(qt);
+  lqt_delete(qt_cuda);
+}
+
 static inline void test_unified(const size_t numPoints) {
   printf("test_unified\n");
   struct lqt_point* points = malloc(sizeof(struct lqt_point) * numPoints);
@@ -322,19 +354,21 @@ void(*test_funcs[])(const size_t) = {
   test_sorts,
   test_sort_time,
   test_unified,
+  test_unified_sorts,
 };
 
 static const char* default_app_name = "mergesort";
 
 const char* tests[][2] = {
-  {"test_endian_2"  , "test endianness conversions between 4-byte array"},
-  {"test_many"      , "print brief reports for many points"},
-  {"test_endian"    , "test endian shifting in 4-byte array"},
-  {"test_few"       , "print detailed reports for a few points"},
-  {"test_time"      , "benchmark the time to create nodes using CPU vs CUDA"},
-  {"test_sorts"     , "test the values produced by sorting with CPU vs CUDA"},
-  {"test_sort_time" , "benchmark the time to sort using CPU vs CUDA"},
-  {"test_unified"   , "benchmark the time to create and sort using CPU vs CUDA"},
+  {"test_endian_2"     , "test endianness conversions between 4-byte array"},
+  {"test_many"         , "print brief reports for many points"},
+  {"test_endian"       , "test endian shifting in 4-byte array"},
+  {"test_few"          , "print detailed reports for a few points"},
+  {"test_time"         , "benchmark the time to create nodes using CPU vs CUDA"},
+  {"test_sorts"        , "test the values produced by sorting with CPU vs CUDA"},
+  {"test_sort_time"    , "benchmark the time to sort using CPU vs CUDA"},
+  {"test_unified"      , "benchmark the time to create and sort using CPU vs CUDA"},
+  {"test_unified_sorts", "test the values produced by CPU vs CUDA with unified create+sort function"},
 };
 
 const size_t test_num = sizeof(tests) / (sizeof(const char*) * 2);
