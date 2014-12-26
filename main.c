@@ -11,7 +11,7 @@ static inline ord_t uniformFrand(const ord_t min, const ord_t max) {
   return min + r * (max - min);
 }
 
-static inline void test_endian_2(const size_t len) {
+static inline void test_endian_2(const size_t len, const size_t threads) {
   printf("test_endian_2\n");
 
 //  static_assert(sizeof(unsigned int) == 4, "sizeof(int) is not 4, fix the below code")
@@ -47,7 +47,7 @@ static inline void test_endian_2(const size_t len) {
   printf("endian: %u\n", *iarray);
 }
 
-static inline void test_many(const size_t len) {
+static inline void test_many(const size_t len, const size_t threads) {
   printf("test_many\n");
   struct lqt_point* points = malloc(len * sizeof(struct lqt_point));
   const size_t min = 1000;
@@ -84,7 +84,7 @@ static inline void test_many(const size_t len) {
 
 }
 
-static inline void test_endian(const size_t len) {
+static inline void test_endian(const size_t len, const size_t threads) {
   printf("test_endian\n");
   typedef unsigned char uchar;
   typedef unsigned long sort_t;
@@ -118,7 +118,7 @@ static inline void test_endian(const size_t len) {
   printf("eval %lu\n", val);
 }
 
-static inline void test_few(const size_t len) {
+static inline void test_few(const size_t len, const size_t threads) {
   printf("test_few\n");
   struct lqt_point* points = malloc(len * sizeof(struct lqt_point));
   const ord_t min = 0.0;
@@ -156,7 +156,7 @@ static inline void test_few(const size_t len) {
 
 }
 
-static inline void test_time(const size_t numPoints) {
+static inline void test_time(const size_t numPoints, const size_t threads) {
   printf("test_time\n");
   struct lqt_point* points = malloc(sizeof(struct lqt_point) * numPoints);
   const size_t min = 1000;
@@ -200,7 +200,7 @@ static inline void test_time(const size_t numPoints) {
   lqt_delete(cuda_lqt);
 }
 
-static inline void test_sorts(const size_t numPoints) {
+static inline void test_sorts(const size_t numPoints, const size_t threads) {
   printf("test_sorts\n");
 
   struct lqt_point* points = malloc(numPoints * sizeof(struct lqt_point));
@@ -234,7 +234,7 @@ static inline void test_sorts(const size_t numPoints) {
   lqt_delete(qt_cuda);
 }
 
-static inline void test_sort_time(const size_t numPoints) {
+static inline void test_sort_time(const size_t numPoints, const size_t threads) {
   printf("test_sort_time\n");
   struct lqt_point* points = malloc(sizeof(struct lqt_point) * numPoints);
   const size_t min = 1000;
@@ -273,7 +273,7 @@ static inline void test_sort_time(const size_t numPoints) {
   lqt_delete(qt_cuda);
 }
 
-static inline void test_unified_sorts(const size_t numPoints) {
+static inline void test_unified_sorts(const size_t numPoints, const size_t threads) {
   printf("test_unified_sorts\n");
   struct lqt_point* points = malloc(sizeof(struct lqt_point) * numPoints);
   const size_t min = 1000;
@@ -305,7 +305,7 @@ static inline void test_unified_sorts(const size_t numPoints) {
   lqt_delete(qt_cuda);
 }
 
-static inline void test_unified(const size_t numPoints) {
+static inline void test_unified(const size_t numPoints, const size_t threads) {
   printf("test_unified\n");
   struct lqt_point* points = malloc(sizeof(struct lqt_point) * numPoints);
   const size_t min = 1000;
@@ -345,7 +345,35 @@ static inline void test_unified(const size_t numPoints) {
   lqt_delete(qt_cuda);
 }
 
-void(*test_funcs[])(const size_t) = {
+static inline void test_heterogeneous(const size_t numPoints, const size_t threads) {
+  printf("test_unified\n");
+  struct lqt_point* points = malloc(sizeof(struct lqt_point) * numPoints);
+  const size_t min = 1000;
+  const size_t max = 1100;
+  printf("creating points...\n");
+  for(int i = 0, end = numPoints; i != end; ++i) {
+    points[i].x = uniformFrand(min, max);
+    points[i].y = uniformFrand(min, max);
+    points[i].key = i;
+  }
+  struct lqt_point* points_cuda = malloc(numPoints * sizeof(struct lqt_point));
+  memcpy(points_cuda, points, numPoints * sizeof(struct lqt_point));
+
+  printf("points: %lu\n", numPoints);
+  printf("creating quadtree...\n");
+  const clock_t start = clock();
+  size_t depth;
+  struct linear_quadtree_unified qt = lqt_create_heterogeneous(points, numPoints, min, max, min, max, &depth, threads);
+
+  const clock_t end = clock();
+  const double elapsed_s = (end - start) / (double)CLOCKS_PER_SEC;
+  printf("cpu time: %fs\n", elapsed_s);
+  printf("ms per point: %f\n", 1000.0 * elapsed_s / numPoints);
+
+  lqt_delete_unified(qt);
+}
+
+void(*test_funcs[])(const size_t, const size_t threads) = {
   test_endian_2,
   test_many,
   test_endian,
@@ -355,6 +383,7 @@ void(*test_funcs[])(const size_t) = {
   test_sort_time,
   test_unified,
   test_unified_sorts,
+  test_heterogeneous,
 };
 
 static const char* default_app_name = "mergesort";
@@ -369,6 +398,7 @@ const char* tests[][2] = {
   {"test_sort_time"    , "benchmark the time to sort using CPU vs CUDA"},
   {"test_unified"      , "benchmark the time to create and sort using CPU vs CUDA"},
   {"test_unified_sorts", "test the values produced by CPU vs CUDA with unified create+sort function"},
+  {"test_heterogeneous", "benchmark the time to create using CUDA and sort using CPU"},
 };
 
 const size_t test_num = sizeof(tests) / (sizeof(const char*) * 2);
@@ -378,6 +408,7 @@ struct app_arguments {
   const char* app_name;
   size_t      test_num;
   size_t      array_size;
+  size_t      threads;
 };
 
 static struct app_arguments parseArgs(const int argc, const char** argv) {
@@ -396,6 +427,10 @@ static struct app_arguments parseArgs(const int argc, const char** argv) {
     return args;
   args.array_size = strtol(argv[2], NULL, 10);
 
+  if(argc < 4)
+    return args;
+  args.threads = strtol(argv[3], NULL, 10);
+
   args.success = true;
   return args;
 }
@@ -403,7 +438,8 @@ static struct app_arguments parseArgs(const int argc, const char** argv) {
 /// \param[out] msg
 /// \param[out] msg_len
 static void print_usage(const char* app_name) {
-  printf("usage: %s test_num  array_size\n", strlen(app_name) == 0 ? default_app_name : app_name);
+  printf("usage: %s test_num array_size threads\n", strlen(app_name) == 0 ? default_app_name : app_name);
+  printf(" (threads is only used for heterogeneous test(s)\n");
   printf("\n");
   printf("       num test            description\n");
   for(size_t i = 0, end = test_num; i != end; ++i) {
@@ -421,7 +457,7 @@ int main(const int argc, const char** argv) {
     return 0;
   }
 
-  test_funcs[args.test_num](args.array_size);
+  test_funcs[args.test_num](args.array_size, args.threads);
   printf("\n");
   return 0;
 }

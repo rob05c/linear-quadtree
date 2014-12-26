@@ -58,10 +58,6 @@ void lqt_delete(struct linear_quadtree);
 void lqt_print_node(const location_t* location, const struct lqt_point* point, const bool verbose);
 void lqt_print_nodes(struct linear_quadtree lqt, const bool verbose);
 
-#ifdef __cplusplus
-}
-#endif
-
 struct linear_quadtree_cuda {
   struct lqt_point* points;
   location_t*       cuda_locations;
@@ -75,4 +71,32 @@ struct linear_quadtree_cuda lqt_nodify_cuda_mem(struct lqt_point* points, size_t
 struct linear_quadtree lqt_sortify_cuda_mem(struct linear_quadtree_cuda);
 
 
+///
+/// unified / heterogeneous
+///
+struct lqt_unified_node {
+  location_t        location;
+  struct lqt_point  point;
+};
+
+struct linear_quadtree_unified {
+  struct lqt_unified_node* nodes;
+  size_t                   length;
+};
+void lqt_delete_unified(struct linear_quadtree_unified);
+
+struct linear_quadtree_unified lqt_nodify_cuda_unified(struct lqt_point* points, size_t len, 
+                                                       ord_t xstart, ord_t xend, 
+                                                       ord_t ystart, ord_t yend,
+                                                       size_t* depth);
+struct linear_quadtree_unified tbb_sortify_unified(struct linear_quadtree_unified lqt, const size_t threads);
+
+struct linear_quadtree_unified lqt_create_heterogeneous(struct lqt_point* points, size_t len, 
+                                                        ord_t xstart, ord_t xend, 
+                                                        ord_t ystart, ord_t yend,
+                                                        size_t* depth, const size_t threads);
+
+#ifdef __cplusplus
+}
+#endif
 #endif

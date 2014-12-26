@@ -190,4 +190,12 @@ void lqt_copy(struct linear_quadtree* destination, struct linear_quadtree* sourc
   memcpy(destination->points, source->points, source->length * sizeof(struct lqt_point));
 }
 
+///
+/// unified
+///
+
+void lqt_delete_unified(struct linear_quadtree_unified q) {
+  free(q.nodes);
+}
+
 #undef ENDIANSWAP
