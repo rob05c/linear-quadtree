@@ -11,7 +11,7 @@ all: lqt
 lqt: lqt.o main.o lqtcuda.o nocuda.o
 	$(LINK_CC) main.o lqt.o lqtcuda.o nocuda.o -o lqt -lm $(LINK_FLAGS)
 main.o: 
-	$(CC) $(FLAGS) -c main.c -o main.o
+	$(CC_CPP) $(CPP_FLAGS) -c main.cpp -o main.o
 lqt.o:
 	$(CC) $(FLAGS) -c lqt.c -o lqt.o
 lqtcuda.o:

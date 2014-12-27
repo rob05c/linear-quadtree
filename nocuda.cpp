@@ -5,6 +5,10 @@
 #include <stdlib.h>    
 #include <assert.h>
 #include <math.h>
+
+#include <iostream>
+#include <chrono>
+
 //#include "mergesort.hh"
 #include "tbb/tbb.h"
 
@@ -41,13 +45,32 @@ bool operator<(const lqt_unified_node& rhs, const lqt_unified_node& lhs) {
   return rhs.location < lhs.location;
 }
 
+size_t tbb_num_default_thread() {
+  return tbb::task_scheduler_init::default_num_threads();
+}
+
+void tbb_test_scheduler_init() {
+  for(size_t i = 1; i < 1025; i *= 2) {
+    const size_t num_threads = i;
+    const auto start = std::chrono::high_resolution_clock::now();
+    tbb::task_scheduler_init init(num_threads);
+    const auto end = std::chrono::high_resolution_clock::now();
+    const auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    std::cout << "tbb scheduler init test - threads: " << num_threads << "\tms: " << duration << std::endl;
+  }
+}
 
 struct linear_quadtree_unified tbb_sortify_unified(struct linear_quadtree_unified lqt, const size_t threads) {
 //  auto lowxpack = [](const struct rtree_point& rhs, const struct rtree_point& lhs) {
 //    return rhs.x < rhs.y;
 //  };
-  tbb::task_scheduler_init init(threads);
+//  tbb::task_scheduler_init init(threads);
   tbb::parallel_sort(lqt.nodes, lqt.nodes + lqt.length);
+  return lqt;
+}
+
+struct linear_quadtree_unified sisd_sortify_unified(struct linear_quadtree_unified lqt, const size_t threads) {
+  std::sort(lqt.nodes, lqt.nodes + lqt.length);
   return lqt;
 }
 
@@ -59,6 +82,13 @@ struct linear_quadtree_unified lqt_create_heterogeneous(struct lqt_point* points
   return tbb_sortify_unified(lqt_nodify_cuda_unified(points, len, xstart, xend, ystart, yend, depth), threads);
 }
 
+/// does not block for GPU memory. Will fail, if GPU memory is insufficient.
+struct linear_quadtree_unified lqt_create_sisd(struct lqt_point* points, size_t len, 
+                                                       ord_t xstart, ord_t xend, 
+                                                       ord_t ystart, ord_t yend,
+                                                       size_t* depth, const size_t threads) {
+  return sisd_sortify_unified(lqt_nodify_cuda_unified(points, len, xstart, xend, ystart, yend, depth), threads);
+}
 
 /*
 /// \param threads the number of threads to use when sorting. ONLY used in the 'sort' part of the algorithm

@@ -125,9 +125,10 @@ struct linear_quadtree lqt_create_cuda(struct lqt_point* points, size_t len,
 
   const size_t array_size = (sizeof(struct lqt_point) + sizeof(location_t)) * len * 2; // *2 for double-buffers
   const size_t num_blocks = array_size / cuda_mem_free + 1;
-  printf("num blocks: %lu\n", num_blocks); // debug
-  const size_t array_block_size = array_size / num_blocks;
-  printf("free: %lu\tarray: %lu\tblocks: %lu\tblock size: %lu\n", cuda_mem_free, array_size, num_blocks, array_block_size); // debug
+
+//  printf("num blocks: %lu\n", num_blocks); // debug
+//  const size_t array_block_size = array_size / num_blocks;
+//  printf("free: %lu\tarray: %lu\tblocks: %lu\tblock size: %lu\n", cuda_mem_free, array_size, num_blocks, array_block_size); // debug
   
   const size_t block_len = len / num_blocks + (len % num_blocks != 0 ? 1 : 0);
   struct linear_quadtree* array_blocks = (struct linear_quadtree*) malloc(num_blocks * sizeof(linear_quadtree));

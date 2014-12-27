@@ -5,9 +5,33 @@
 #include <math.h>
 #include <string.h>
 
+#include <iostream>
+#include <chrono>
+#include "tbb/tbb.h"
+
+/// not threadsafe
+static inline unsigned long xorshf96(void) { // period 2^96-1
+  static unsigned long x=123456789, y=362436069, z=521288629;
+
+  unsigned long t;
+  x ^= x << 16;
+  x ^= x >> 5;
+  x ^= x << 1;
+
+  t = x;
+  x = y;
+  y = z;
+  z = t ^ x ^ y;
+
+  return z;
+}
+
+/// Not threadsafe. But neither is rand().
+static inline unsigned long fast_rand(void) {return xorshf96();}
+
 // generate a uniform random between min and max exclusive
 static inline ord_t uniformFrand(const ord_t min, const ord_t max) {
-  const double r = (double)rand() / RAND_MAX;
+  const double r = (double)fast_rand() / RAND_MAX;
   return min + r * (max - min);
 }
 
@@ -49,7 +73,7 @@ static inline void test_endian_2(const size_t len, const size_t threads) {
 
 static inline void test_many(const size_t len, const size_t threads) {
   printf("test_many\n");
-  struct lqt_point* points = malloc(len * sizeof(struct lqt_point));
+  lqt_point* points = (lqt_point*) malloc(len * sizeof(struct lqt_point));
   const size_t min = 1000;
   const size_t max = 1100;
   printf("creating points...\n");
@@ -120,7 +144,7 @@ static inline void test_endian(const size_t len, const size_t threads) {
 
 static inline void test_few(const size_t len, const size_t threads) {
   printf("test_few\n");
-  struct lqt_point* points = malloc(len * sizeof(struct lqt_point));
+  struct lqt_point* points = (lqt_point*) malloc(len * sizeof(struct lqt_point));
   const ord_t min = 0.0;
   const ord_t max = 300.0;
   printf("creating points...\n");
@@ -158,7 +182,7 @@ static inline void test_few(const size_t len, const size_t threads) {
 
 static inline void test_time(const size_t numPoints, const size_t threads) {
   printf("test_time\n");
-  struct lqt_point* points = malloc(sizeof(struct lqt_point) * numPoints);
+  struct lqt_point* points = (lqt_point*) malloc(sizeof(struct lqt_point) * numPoints);
   const size_t min = 1000;
   const size_t max = 1100;
   printf("creating points...\n");
@@ -180,7 +204,7 @@ static inline void test_time(const size_t numPoints, const size_t threads) {
   // lqt and points not valid henceforth and hereafter.
 
   printf("creating cuda points...\n");
-  struct lqt_point* cuda_points = malloc(sizeof(struct lqt_point) * numPoints);
+  struct lqt_point* cuda_points = (lqt_point*) malloc(sizeof(struct lqt_point) * numPoints);
   printf("creating points...\n");
   for(int i = 0, end = numPoints; i != end; ++i) {
     cuda_points[i].x = uniformFrand(min, max);
@@ -203,7 +227,7 @@ static inline void test_time(const size_t numPoints, const size_t threads) {
 static inline void test_sorts(const size_t numPoints, const size_t threads) {
   printf("test_sorts\n");
 
-  struct lqt_point* points = malloc(numPoints * sizeof(struct lqt_point));
+  struct lqt_point* points = (lqt_point*) malloc(numPoints * sizeof(struct lqt_point));
   const size_t min = 1000;
   const size_t max = 1100;
   printf("creating points...\n");
@@ -236,7 +260,7 @@ static inline void test_sorts(const size_t numPoints, const size_t threads) {
 
 static inline void test_sort_time(const size_t numPoints, const size_t threads) {
   printf("test_sort_time\n");
-  struct lqt_point* points = malloc(sizeof(struct lqt_point) * numPoints);
+  struct lqt_point* points = (lqt_point*) malloc(sizeof(struct lqt_point) * numPoints);
   const size_t min = 1000;
   const size_t max = 1100;
   printf("creating points...\n");
@@ -275,7 +299,7 @@ static inline void test_sort_time(const size_t numPoints, const size_t threads) 
 
 static inline void test_unified_sorts(const size_t numPoints, const size_t threads) {
   printf("test_unified_sorts\n");
-  struct lqt_point* points = malloc(sizeof(struct lqt_point) * numPoints);
+  struct lqt_point* points = (lqt_point*) malloc(sizeof(struct lqt_point) * numPoints);
   const size_t min = 1000;
   const size_t max = 1100;
   printf("creating points...\n");
@@ -284,7 +308,7 @@ static inline void test_unified_sorts(const size_t numPoints, const size_t threa
     points[i].y = uniformFrand(min, max);
     points[i].key = i;
   }
-  struct lqt_point* points_cuda = malloc(numPoints * sizeof(struct lqt_point));
+  struct lqt_point* points_cuda = (lqt_point*) malloc(numPoints * sizeof(struct lqt_point));
   memcpy(points_cuda, points, numPoints * sizeof(struct lqt_point));
 
   printf("points: %lu\n", numPoints);
@@ -307,7 +331,7 @@ static inline void test_unified_sorts(const size_t numPoints, const size_t threa
 
 static inline void test_unified(const size_t numPoints, const size_t threads) {
   printf("test_unified\n");
-  struct lqt_point* points = malloc(sizeof(struct lqt_point) * numPoints);
+  struct lqt_point* points = (lqt_point*) malloc(sizeof(struct lqt_point) * numPoints);
   const size_t min = 1000;
   const size_t max = 1100;
   printf("creating points...\n");
@@ -316,7 +340,7 @@ static inline void test_unified(const size_t numPoints, const size_t threads) {
     points[i].y = uniformFrand(min, max);
     points[i].key = i;
   }
-  struct lqt_point* points_cuda = malloc(numPoints * sizeof(struct lqt_point));
+  struct lqt_point* points_cuda = (lqt_point*) malloc(numPoints * sizeof(struct lqt_point));
   memcpy(points_cuda, points, numPoints * sizeof(struct lqt_point));
 
   printf("points: %lu\n", numPoints);
@@ -345,9 +369,9 @@ static inline void test_unified(const size_t numPoints, const size_t threads) {
   lqt_delete(qt_cuda);
 }
 
-static inline void test_heterogeneous(const size_t numPoints, const size_t threads) {
-  printf("test_unified\n");
-  struct lqt_point* points = malloc(sizeof(struct lqt_point) * numPoints);
+static inline void test_unified_cuda(const size_t numPoints, const size_t threads) {
+  printf("test_unified_cuda\n");
+  struct lqt_point* points = (lqt_point*) malloc(sizeof(struct lqt_point) * numPoints);
   const size_t min = 1000;
   const size_t max = 1100;
   printf("creating points...\n");
@@ -356,19 +380,73 @@ static inline void test_heterogeneous(const size_t numPoints, const size_t threa
     points[i].y = uniformFrand(min, max);
     points[i].key = i;
   }
-  struct lqt_point* points_cuda = malloc(numPoints * sizeof(struct lqt_point));
-  memcpy(points_cuda, points, numPoints * sizeof(struct lqt_point));
 
   printf("points: %lu\n", numPoints);
-  printf("creating quadtree...\n");
-  const clock_t start = clock();
   size_t depth;
+  printf("creating quadtree with CUDA...\n");
+  const auto start = std::chrono::high_resolution_clock::now();
+
+  struct linear_quadtree qt = lqt_create_cuda(points, numPoints, min, max, min, max, &depth);
+
+  const auto end = std::chrono::high_resolution_clock::now();
+  const auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+  std::cout << "cpu time (ms): " << elapsed_ms << std::endl;
+  printf("ms per cuda point: %f\n", (double)elapsed_ms / numPoints);
+
+  lqt_delete(qt);
+}
+
+static inline void test_unified_sisd(const size_t numPoints, const size_t threads) {
+  printf("test_unified_sisd\n");
+  struct lqt_point* points = (lqt_point*) malloc(sizeof(struct lqt_point) * numPoints);
+  const size_t min = 1000;
+  const size_t max = 1100;
+  printf("creating points...\n");
+  for(int i = 0, end = numPoints; i != end; ++i) {
+    points[i].x = uniformFrand(min, max);
+    points[i].y = uniformFrand(min, max);
+    points[i].key = i;
+  }
+  printf("points: %lu\n", numPoints);
+  printf("creating quadtree...\n");
+
+  size_t depth;
+  const auto start = std::chrono::high_resolution_clock::now();
+
+  struct linear_quadtree_unified qt = lqt_create_sisd(points, numPoints, min, max, min, max, &depth, threads);
+
+  const auto end = std::chrono::high_resolution_clock::now();
+  const auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+  std::cout << "cpu time (ms): " << elapsed_ms << std::endl;
+  printf("ms per point: %f\n", (double)elapsed_ms / numPoints);
+
+  lqt_delete_unified(qt);
+}
+
+static inline void test_heterogeneous(const size_t numPoints, const size_t threads) {
+  printf("test_heterogeneous\n");
+
+  struct lqt_point* points = (lqt_point*) malloc(sizeof(struct lqt_point) * numPoints);
+  const size_t min = 1000;
+  const size_t max = 1100;
+  printf("creating points...\n");
+  for(int i = 0, end = numPoints; i != end; ++i) {
+    points[i].x = uniformFrand(min, max);
+    points[i].y = uniformFrand(min, max);
+    points[i].key = i;
+  }
+  printf("points: %lu\n", numPoints);
+  printf("creating quadtree...\n");
+
+  size_t depth;
+  const auto start = std::chrono::high_resolution_clock::now();
+
   struct linear_quadtree_unified qt = lqt_create_heterogeneous(points, numPoints, min, max, min, max, &depth, threads);
 
-  const clock_t end = clock();
-  const double elapsed_s = (end - start) / (double)CLOCKS_PER_SEC;
-  printf("cpu time: %fs\n", elapsed_s);
-  printf("ms per point: %f\n", 1000.0 * elapsed_s / numPoints);
+  const auto end = std::chrono::high_resolution_clock::now();
+  const auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+  std::cout << "cpu time (ms): " << elapsed_ms << std::endl;
+  printf("ms per point: %f\n", (double)elapsed_ms / numPoints);
 
   lqt_delete_unified(qt);
 }
@@ -384,6 +462,8 @@ void(*test_funcs[])(const size_t, const size_t threads) = {
   test_unified,
   test_unified_sorts,
   test_heterogeneous,
+  test_unified_cuda,
+  test_unified_sisd,
 };
 
 static const char* default_app_name = "mergesort";
@@ -399,6 +479,8 @@ const char* tests[][2] = {
   {"test_unified"      , "benchmark the time to create and sort using CPU vs CUDA"},
   {"test_unified_sorts", "test the values produced by CPU vs CUDA with unified create+sort function"},
   {"test_heterogeneous", "benchmark the time to create using CUDA and sort using CPU"},
+  {"test_unified_cuda" , "benchmark the time to create and sort using CUDA"},
+  {"test_unified_sisd" , "benchmark the time to create CUDA and sort SISD (for comparison)"},
 };
 
 const size_t test_num = sizeof(tests) / (sizeof(const char*) * 2);
@@ -456,6 +538,10 @@ int main(const int argc, const char** argv) {
     print_usage(args.app_name);
     return 0;
   }
+
+//  printf("tbb threads: %lu\n", tbb_num_default_thread());
+//  tbb_test_scheduler_init();
+  tbb::task_scheduler_init tbb_scheduler(args.threads);
 
   test_funcs[args.test_num](args.array_size, args.threads);
   printf("\n");
