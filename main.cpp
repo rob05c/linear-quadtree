@@ -441,7 +441,7 @@ static inline void test_heterogeneous(const size_t numPoints, const size_t threa
   size_t depth;
   const auto start = std::chrono::high_resolution_clock::now();
 
-  struct linear_quadtree_unified qt = lqt_create_heterogeneous(points, numPoints, min, max, min, max, &depth, threads);
+  struct linear_quadtree_unified qt = lqt_create_heterogeneous2(points, numPoints, min, max, min, max, &depth, threads);
 
   const auto end = std::chrono::high_resolution_clock::now();
   const auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
@@ -450,6 +450,43 @@ static inline void test_heterogeneous(const size_t numPoints, const size_t threa
 
   lqt_delete_unified(qt);
 }
+
+static inline void test_mergesort(const size_t numPoints, const size_t threads) {
+  printf("test_heterogeneous\n");
+
+  struct lqt_point* points = (lqt_point*) malloc(sizeof(struct lqt_point) * numPoints);
+  const size_t min = 1000;
+  const size_t max = 1100;
+  printf("creating points...\n");
+  for(int i = 0, end = numPoints; i != end; ++i) {
+    points[i].x = uniformFrand(min, max);
+    points[i].y = uniformFrand(min, max);
+    points[i].key = i;
+  }
+  printf("points: %lu\n", numPoints);
+  printf("creating quadtree...\n");
+
+  size_t depth;
+  struct linear_quadtree_unified qt = lqt_create_heterogeneous2(points, numPoints, min, max, min, max, &depth, threads);
+
+  printf("validating sort...\n");
+
+  bool failed = false;
+  for(size_t i = 0, end = qt.length - 1; i != end; ++i) {
+    if(qt.nodes[i].location > qt.nodes[i + 1].location) {
+      printf("mergesort failed: node %lu is greater than %lu: %lu > %lu\n", i, i + 1, qt.nodes[i].location, qt.nodes[i + 1].location);
+      failed = true;
+    }
+  }
+  if(!failed)
+    printf("mergesort validated: all points in order\n");
+  else
+    printf("mergesort failed\n");
+
+  lqt_delete_unified(qt);
+}
+
+
 
 void(*test_funcs[])(const size_t, const size_t threads) = {
   test_endian_2,
@@ -464,6 +501,7 @@ void(*test_funcs[])(const size_t, const size_t threads) = {
   test_heterogeneous,
   test_unified_cuda,
   test_unified_sisd,
+  test_mergesort,
 };
 
 static const char* default_app_name = "mergesort";
@@ -481,6 +519,7 @@ const char* tests[][2] = {
   {"test_heterogeneous", "benchmark the time to create using CUDA and sort using CPU"},
   {"test_unified_cuda" , "benchmark the time to create and sort using CUDA"},
   {"test_unified_sisd" , "benchmark the time to create CUDA and sort SISD (for comparison)"},
+  {"test_mergesort"    , "validate the parallel mergesort function performs correctly"},
 };
 
 const size_t test_num = sizeof(tests) / (sizeof(const char*) * 2);

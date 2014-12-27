@@ -100,6 +100,12 @@ struct linear_quadtree_unified lqt_create_sisd(struct lqt_point* points, size_t 
                                                         ord_t ystart, ord_t yend,
                                                         size_t* depth, const size_t threads);
 
+/// uses parallel mergesort, instead of tbb::parallel_sort
+struct linear_quadtree_unified lqt_create_heterogeneous2(struct lqt_point* points, size_t len, 
+                                                        ord_t xstart, ord_t xend, 
+                                                        ord_t ystart, ord_t yend,
+                                                        size_t* depth, const size_t threads);
+
 size_t tbb_num_default_thread();
 void tbb_test_scheduler_init();
 
