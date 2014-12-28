@@ -10,6 +10,7 @@
 #include <chrono>
 
 #include "mergesort.hh"
+#include "samplesort.hh"
 #include "tbb/tbb.h"
 
 namespace {
@@ -96,12 +97,23 @@ linear_quadtree_unified merge_sortify_unified(linear_quadtree_unified lqt, const
   return lqt;
 }
 
-/// uses parallel mergesort, instead of tbb::parallel_sort
-linear_quadtree_unified lqt_create_heterogeneous2(lqt_point* points, size_t len, 
-                                                       ord_t xstart, ord_t xend, 
-                                                       ord_t ystart, ord_t yend,
-                                                       size_t* depth, const size_t threads) {
+linear_quadtree_unified lqt_create_heterogeneous_mergesort(lqt_point* points, size_t len, 
+                                                           ord_t xstart, ord_t xend, 
+                                                           ord_t ystart, ord_t yend,
+                                                           size_t* depth, const size_t threads) {
   return merge_sortify_unified(lqt_nodify_cuda_unified(points, len, xstart, xend, ystart, yend, depth), threads);
+}
+
+linear_quadtree_unified sample_sortify_unified(linear_quadtree_unified lqt, const size_t threads) {
+  lqt.nodes = parallel_samplesort(lqt.nodes, lqt.nodes + lqt.length, threads);
+  return lqt;
+}
+
+linear_quadtree_unified lqt_create_heterogeneous_samplesort(lqt_point* points, size_t len, 
+                                                           ord_t xstart, ord_t xend, 
+                                                           ord_t ystart, ord_t yend,
+                                                           size_t* depth, const size_t threads) {
+  return sample_sortify_unified(lqt_nodify_cuda_unified(points, len, xstart, xend, ystart, yend, depth), threads);
 }
 
 /*

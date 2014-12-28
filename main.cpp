@@ -423,8 +423,28 @@ static inline void test_unified_sisd(const size_t numPoints, const size_t thread
   lqt_delete_unified(qt);
 }
 
-static inline void test_heterogeneous(const size_t numPoints, const size_t threads) {
-  printf("test_heterogeneous\n");
+enum sort_type_e {
+  st_tbb,
+  st_merge,
+  st_sample,
+};
+
+typedef linear_quadtree_unified (*create_func_t)(lqt_point* points, size_t len, ord_t xstart, ord_t xend, ord_t ystart, ord_t yend, size_t* depth, const size_t threads);
+
+create_func_t get_create_func(sort_type_e sort_type) {
+  switch(sort_type) {
+  case st_tbb:
+    return &lqt_create_heterogeneous;
+  case st_merge:
+    return &lqt_create_heterogeneous_mergesort;
+  case st_sample:
+    return &lqt_create_heterogeneous_samplesort;
+  }
+  return &lqt_create_heterogeneous;
+}
+
+static inline void test_heterogeneous_withtype(const size_t numPoints, const size_t threads, const sort_type_e sort_type) {
+  printf("test_heterogeneous_%s\n", sort_type == st_tbb ? "tbbsort" : (sort_type == st_merge ? "mergesort" : "samplesort"));
 
   struct lqt_point* points = (lqt_point*) malloc(sizeof(struct lqt_point) * numPoints);
   const size_t min = 1000;
@@ -438,10 +458,12 @@ static inline void test_heterogeneous(const size_t numPoints, const size_t threa
   printf("points: %lu\n", numPoints);
   printf("creating quadtree...\n");
 
+  create_func_t create_func = get_create_func(sort_type);
+
   size_t depth;
   const auto start = std::chrono::high_resolution_clock::now();
 
-  struct linear_quadtree_unified qt = lqt_create_heterogeneous2(points, numPoints, min, max, min, max, &depth, threads);
+  struct linear_quadtree_unified qt = create_func(points, numPoints, min, max, min, max, &depth, threads);
 
   const auto end = std::chrono::high_resolution_clock::now();
   const auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
@@ -450,6 +472,19 @@ static inline void test_heterogeneous(const size_t numPoints, const size_t threa
 
   lqt_delete_unified(qt);
 }
+
+static inline void test_heterogeneous(const size_t numPoints, const size_t threads) {
+  test_heterogeneous_withtype(numPoints, threads, st_tbb);
+}
+
+static inline void test_heterogeneous2(const size_t numPoints, const size_t threads) {
+  test_heterogeneous_withtype(numPoints, threads, st_merge);
+}
+
+static inline void test_heterogeneous3(const size_t numPoints, const size_t threads) {
+  test_heterogeneous_withtype(numPoints, threads, st_sample);
+}
+
 
 static inline void test_mergesort(const size_t numPoints, const size_t threads) {
   printf("test_heterogeneous\n");
@@ -467,7 +502,7 @@ static inline void test_mergesort(const size_t numPoints, const size_t threads) 
   printf("creating quadtree...\n");
 
   size_t depth;
-  struct linear_quadtree_unified qt = lqt_create_heterogeneous2(points, numPoints, min, max, min, max, &depth, threads);
+  struct linear_quadtree_unified qt = lqt_create_heterogeneous_mergesort(points, numPoints, min, max, min, max, &depth, threads);
 
   printf("validating sort...\n");
 
@@ -502,6 +537,8 @@ void(*test_funcs[])(const size_t, const size_t threads) = {
   test_unified_cuda,
   test_unified_sisd,
   test_mergesort,
+  test_heterogeneous2,
+  test_heterogeneous3,
 };
 
 static const char* default_app_name = "mergesort";
@@ -516,10 +553,12 @@ const char* tests[][2] = {
   {"test_sort_time"    , "benchmark the time to sort using CPU vs CUDA"},
   {"test_unified"      , "benchmark the time to create and sort using CPU vs CUDA"},
   {"test_unified_sorts", "test the values produced by CPU vs CUDA with unified create+sort function"},
-  {"test_heterogeneous", "benchmark the time to create using CUDA and sort using CPU"},
+  {"test_heterogeneous", "benchmark the time to create using CUDA and sort using tbb::parallel_sort"},
   {"test_unified_cuda" , "benchmark the time to create and sort using CUDA"},
   {"test_unified_sisd" , "benchmark the time to create CUDA and sort SISD (for comparison)"},
   {"test_mergesort"    , "validate the parallel mergesort function performs correctly"},
+  {"test_heterogeneous2", "benchmark the time to create using CUDA and sort using parallel_mergesort"},
+  {"test_heterogeneous3", "benchmark the time to create using CUDA and sort using parallel_samplesort"},
 };
 
 const size_t test_num = sizeof(tests) / (sizeof(const char*) * 2);

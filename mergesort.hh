@@ -1,6 +1,6 @@
 // Appears in Structured Parallel Programming, published by Elsevier, Inc.
-#ifndef hello_hh
-#define hello_hh
+#ifndef mergesort_hh
+#define mergesort_hh
 
 #include <cstdlib>
 #include <cstdlib>
@@ -8,29 +8,6 @@
 #include <vector>
 #include <memory>
 #include "tbb/tbb.h"
-
-namespace {
-using std::vector;
-using std::string;
-using std::numeric_limits;
-using std::cout;
-using std::endl;
-using std::to_string;
-using std::unique_ptr;
-using tbb::parallel_for;
-using tbb::blocked_range;
-using tbb::parallel_do;
-using tbb::parallel_do_feeder;
-
-template <typename T>
-void print_array(T* array, const size_t size) {
-  string outstr = "{";
-  for(int i = 0, end = size; i != end; ++i)
-    outstr += to_string(array[i]) + ", ";
-  outstr.erase(outstr.size() - 2);
-  outstr += "}";
-  cout << outstr << endl;
-}
 
 template <typename T>
 void serial_merge(T* first, T* first_end,
@@ -96,15 +73,13 @@ void mergesort_(T* array, T* array_end, T* buffer, const bool inplace) {
   }
 }
 
-} // namespace
-
 template <typename T>
 T* parallel_mergesort(T* array, T* array_end, size_t threads) {
   tbb::task_scheduler_init init(threads);
 
-  unique_ptr<T[]> buffer(new T[array_end - array]);
+  std::unique_ptr<T[]> buffer(new T[array_end - array]);
   mergesort_<T>(array, array_end, buffer.get(), true);
   return array;
 }
 
-#endif // hello_hh
+#endif // mergesort_hh
