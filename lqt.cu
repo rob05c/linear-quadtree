@@ -43,7 +43,7 @@ inline size_t find_min(location_t* keys, const size_t keys_len) {
 
 /// \param[out] keys must be at least block_len large
 /// \return whether all iterators are past their length. That is, when this is false, we can stop merging.
-inline bool get_keys(location_t* keys, const struct linear_quadtree* array_blocks, const size_t block_len, const size_t* iterators) {
+inline bool get_keys(location_t* keys, const linear_quadtree* array_blocks, const size_t block_len, const size_t* iterators) {
   bool got_key = false;
   for(int i = 0, end = block_len; i != end; ++i) {
     if(iterators[i] >= array_blocks[i].length) {
@@ -56,8 +56,8 @@ inline bool get_keys(location_t* keys, const struct linear_quadtree* array_block
   return got_key;
 }
 
-struct linear_quadtree lqt_merge(struct linear_quadtree* array_blocks, const size_t block_len, struct lqt_point* points, const size_t len) {
-  struct linear_quadtree lqt;
+linear_quadtree lqt_merge(linear_quadtree* array_blocks, const size_t block_len, lqt_point* points, const size_t len) {
+  linear_quadtree lqt;
   lqt.points    = points;
   lqt.locations = (location_t*) malloc(sizeof(location_t) * len);
   lqt.length    = len;
@@ -84,7 +84,7 @@ struct linear_quadtree lqt_merge(struct linear_quadtree* array_blocks, const siz
   return lqt;
 }
 
-__global__ void nodify_kernel(struct lqt_point* points, location_t* locations,
+__global__ void nodify_kernel(lqt_point* points, location_t* locations,
                                  const size_t depth, ord_t xstart, ord_t xend, 
                                  ord_t ystart, ord_t yend, size_t len) {
   const int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -92,7 +92,7 @@ __global__ void nodify_kernel(struct lqt_point* points, location_t* locations,
   if(i >= len)
     return; // skip the final block remainder
 
-  struct lqt_point* thisPoint = &points[i];
+  lqt_point* thisPoint = &points[i];
 
   ord_t currentXStart = xstart;
   ord_t currentXEnd = xend;
@@ -113,7 +113,7 @@ __global__ void nodify_kernel(struct lqt_point* points, location_t* locations,
   }
 }
 
-struct linear_quadtree lqt_create_cuda(struct lqt_point* points, size_t len, 
+linear_quadtree lqt_create_cuda(lqt_point* points, size_t len, 
                                        ord_t xstart, ord_t xend, 
                                        ord_t ystart, ord_t yend,
                                        size_t* depth) {
@@ -123,7 +123,7 @@ struct linear_quadtree lqt_create_cuda(struct lqt_point* points, size_t len,
   CubDebugExit(cudaMemGetInfo(&cuda_mem_free, &cuda_mem_total));
   cuda_mem_free = cuda_mem_free / 5 * 4; // wiggle room <('.'<) <('.' )> (>'.')>
 
-  const size_t array_size = (sizeof(struct lqt_point) + sizeof(location_t)) * len * 2; // *2 for double-buffers
+  const size_t array_size = (sizeof(lqt_point) + sizeof(location_t)) * len * 2; // *2 for double-buffers
   const size_t num_blocks = array_size / cuda_mem_free + 1;
 
 //  printf("num blocks: %lu\n", num_blocks); // debug
@@ -131,18 +131,18 @@ struct linear_quadtree lqt_create_cuda(struct lqt_point* points, size_t len,
 //  printf("free: %lu\tarray: %lu\tblocks: %lu\tblock size: %lu\n", cuda_mem_free, array_size, num_blocks, array_block_size); // debug
   
   const size_t block_len = len / num_blocks + (len % num_blocks != 0 ? 1 : 0);
-  struct linear_quadtree* array_blocks = (struct linear_quadtree*) malloc(num_blocks * sizeof(linear_quadtree));
+  linear_quadtree* array_blocks = (linear_quadtree*) malloc(num_blocks * sizeof(linear_quadtree));
 
   for(size_t i = 0, end = num_blocks; i != end; ++i) {
     array_blocks[i].length = block_len;
     if(block_len * i + block_len  > len)
       array_blocks[i].length -= block_len * num_blocks - len; // fix the last block overlap
-    array_blocks[i].points = (struct lqt_point*) malloc(sizeof(struct lqt_point) * array_blocks[i].length);
-    memcpy(array_blocks[i].points, points + block_len * i, array_blocks[i].length * sizeof(struct lqt_point));
+    array_blocks[i].points = (lqt_point*) malloc(sizeof(lqt_point) * array_blocks[i].length);
+    memcpy(array_blocks[i].points, points + block_len * i, array_blocks[i].length * sizeof(lqt_point));
     array_blocks[i] = lqt_sortify_cuda_mem(lqt_nodify_cuda_mem(array_blocks[i].points, array_blocks[i].length, xstart, xend, ystart, yend, depth));
   }
   
-  struct linear_quadtree lqt = lqt_merge(array_blocks, num_blocks, points, len);
+  linear_quadtree lqt = lqt_merge(array_blocks, num_blocks, points, len);
   for(size_t i = 0, end = num_blocks; i != end; ++i)
     lqt_delete(array_blocks[i]);
   free(array_blocks);
@@ -150,7 +150,7 @@ struct linear_quadtree lqt_create_cuda(struct lqt_point* points, size_t len,
 }
 
 /// does not block for GPU memory. Will fail, if GPU memory is insufficient.
-struct linear_quadtree lqt_create_cuda_noblock(struct lqt_point* points, size_t len, 
+linear_quadtree lqt_create_cuda_noblock(lqt_point* points, size_t len, 
                                        ord_t xstart, ord_t xend, 
                                        ord_t ystart, ord_t yend,
                                        size_t* depth) {
@@ -158,14 +158,14 @@ struct linear_quadtree lqt_create_cuda_noblock(struct lqt_point* points, size_t 
 }
 
 /// unnecessarily allocates and frees CUDA memory twice
-struct linear_quadtree lqt_create_cuda_slow(struct lqt_point* points, size_t len, 
+linear_quadtree lqt_create_cuda_slow(lqt_point* points, size_t len, 
                                        ord_t xstart, ord_t xend, 
                                        ord_t ystart, ord_t yend,
                                        size_t* depth) {
   return lqt_sortify_cuda(lqt_nodify_cuda(points, len, xstart, xend, ystart, yend, depth));
 }
 
-struct linear_quadtree lqt_nodify_cuda(struct lqt_point* points, size_t len, 
+linear_quadtree lqt_nodify_cuda(lqt_point* points, size_t len, 
                                        ord_t xstart, ord_t xend, 
                                        ord_t ystart, ord_t yend,
                                        size_t* depth) {
@@ -174,11 +174,11 @@ struct linear_quadtree lqt_nodify_cuda(struct lqt_point* points, size_t len,
   const size_t THREADS_PER_BLOCK = 512;
 
   location_t*       cuda_locations;
-  struct lqt_point* cuda_points;
+  lqt_point* cuda_points;
 
   cudaMalloc((void**)&cuda_locations, len * sizeof(location_t));
-  cudaMalloc((void**)&cuda_points, len * sizeof(struct lqt_point));
-  cudaMemcpy(cuda_points, points, len * sizeof(struct lqt_point), cudaMemcpyHostToDevice);
+  cudaMalloc((void**)&cuda_points, len * sizeof(lqt_point));
+  cudaMemcpy(cuda_points, points, len * sizeof(lqt_point), cudaMemcpyHostToDevice);
   cudaMemset(cuda_locations, 0, len * sizeof(location_t)); // debug
   nodify_kernel<<<(len + (THREADS_PER_BLOCK - 1)) / THREADS_PER_BLOCK, THREADS_PER_BLOCK>>>(cuda_points, cuda_locations, *depth, xstart, xend, ystart, yend, len);
   location_t* locations = (location_t*) malloc(len * sizeof(location_t));
@@ -186,14 +186,14 @@ struct linear_quadtree lqt_nodify_cuda(struct lqt_point* points, size_t len,
   cudaFree(cuda_locations);
   cudaFree(cuda_points);
 
-  struct linear_quadtree lqt;
+  linear_quadtree lqt;
   lqt.points    = points;
   lqt.locations = locations;
   lqt.length    = len;
   return lqt;
 }
 
-struct linear_quadtree lqt_sortify_cuda(struct linear_quadtree lqt) {
+linear_quadtree lqt_sortify_cuda(linear_quadtree lqt) {
   DoubleBuffer<location_t> d_keys;
   DoubleBuffer<lqt_point> d_values;
   CubDebugExit( g_allocator.DeviceAllocate((void**)&d_keys.d_buffers[0], sizeof(location_t) * lqt.length));
@@ -268,24 +268,24 @@ void print_array(T* array, const size_t len) {
 }
 
 // @return CUDA-allocated points and locations, along with existing host-allocated points
-struct linear_quadtree_cuda lqt_nodify_cuda_mem(struct lqt_point* points, size_t len, 
+linear_quadtree_cuda lqt_nodify_cuda_mem(lqt_point* points, size_t len, 
                                                 ord_t xstart, ord_t xend, 
                                                 ord_t ystart, ord_t yend,
                                                 size_t* depth) {
   const size_t THREADS_PER_BLOCK = 512;
   *depth = LINEAR_QUADTREE_DEPTH;
   location_t*       cuda_locations;
-  struct lqt_point* cuda_points;
+  lqt_point* cuda_points;
 
   CubDebugExit(g_allocator.DeviceAllocate((void**)&cuda_locations, sizeof(location_t) * len));
   CubDebugExit(g_allocator.DeviceAllocate((void**)&cuda_points, sizeof(lqt_point) * len));
 //  cudaMalloc((void**)&cuda_locations, len * sizeof(location_t));
-//  cudaMalloc((void**)&cuda_points, len * sizeof(struct lqt_point));
-  CubDebugExit( cudaMemcpy(cuda_points, points, len * sizeof(struct lqt_point), cudaMemcpyHostToDevice));
+//  cudaMalloc((void**)&cuda_points, len * sizeof(lqt_point));
+  CubDebugExit( cudaMemcpy(cuda_points, points, len * sizeof(lqt_point), cudaMemcpyHostToDevice));
   CubDebugExit( cudaMemset(cuda_locations, 0, len * sizeof(location_t))); // debug
   nodify_kernel<<<(len + (THREADS_PER_BLOCK - 1)) / THREADS_PER_BLOCK, THREADS_PER_BLOCK>>>(cuda_points, cuda_locations, *depth, xstart, xend, ystart, yend, len);
 
-  struct linear_quadtree_cuda lqt;
+  linear_quadtree_cuda lqt;
   lqt.points         = points;
   lqt.cuda_locations = cuda_locations;
   lqt.cuda_points    = cuda_points;
@@ -294,7 +294,7 @@ struct linear_quadtree_cuda lqt_nodify_cuda_mem(struct lqt_point* points, size_t
 }
 
 
-struct linear_quadtree lqt_sortify_cuda_mem(struct linear_quadtree_cuda cuda_lqt) {
+linear_quadtree lqt_sortify_cuda_mem(linear_quadtree_cuda cuda_lqt) {
   //  printf("DEBUG lqt_sortify_cuda_mem\n"); // debug
 
   DoubleBuffer<location_t> d_keys;
@@ -312,7 +312,7 @@ struct linear_quadtree lqt_sortify_cuda_mem(struct linear_quadtree_cuda cuda_lqt
 
   CubDebugExit( DeviceRadixSort::SortPairs(d_temp_storage, temp_storage_bytes, d_keys, d_values, cuda_lqt.length));
 
-  struct linear_quadtree lqt;
+  linear_quadtree lqt;
   lqt.length = cuda_lqt.length;
   lqt.locations = (location_t*) malloc(lqt.length * sizeof(location_t));
   CubDebugExit( cudaMemcpy(lqt.locations, d_keys.Current(), lqt.length * sizeof(location_t), cudaMemcpyDeviceToHost));
@@ -331,7 +331,7 @@ struct linear_quadtree lqt_sortify_cuda_mem(struct linear_quadtree_cuda cuda_lqt
 /// unified / heterogenous
 ///
 
-__global__ void nodify_kernel_unified(struct lqt_point* points, struct lqt_unified_node* nodes,
+__global__ void nodify_kernel_unified(lqt_point* points, lqt_unified_node* nodes,
                                       const size_t depth, ord_t xstart, ord_t xend, 
 
                                       ord_t ystart, ord_t yend, size_t len) {
@@ -340,7 +340,7 @@ __global__ void nodify_kernel_unified(struct lqt_point* points, struct lqt_unifi
   if(i >= len)
     return; // skip the final block remainder
 
-  struct lqt_point* thisPoint = &points[i];
+  lqt_point* thisPoint = &points[i];
 
   ord_t currentXStart = xstart;
   ord_t currentXEnd = xend;
@@ -361,8 +361,8 @@ __global__ void nodify_kernel_unified(struct lqt_point* points, struct lqt_unifi
   }
 }
 
-/// \todo fix this so the tbb::sort can work with struct { locations*, points* } to avoid unnecessary GPU copying
-struct linear_quadtree_unified lqt_nodify_cuda_unified(struct lqt_point* points, size_t len, 
+/// \todo fix this so the tbb::sort can work with locations*, points* } to avoid unnecessary GPU copying
+linear_quadtree_unified lqt_nodify_cuda_unified(lqt_point* points, size_t len, 
                                                        ord_t xstart, ord_t xend, 
                                                        ord_t ystart, ord_t yend,
                                                        size_t* depth) {
@@ -370,24 +370,24 @@ struct linear_quadtree_unified lqt_nodify_cuda_unified(struct lqt_point* points,
 
   const size_t THREADS_PER_BLOCK = 512;
 
-  struct lqt_point*        cuda_points;
-  struct lqt_unified_node* cuda_nodes;
+  lqt_point*        cuda_points;
+  lqt_unified_node* cuda_nodes;
 
   CubDebugExit( cudaMalloc((void**)&cuda_nodes, len * sizeof(lqt_unified_node)));
-  CubDebugExit( cudaMalloc((void**)&cuda_points, len * sizeof(struct lqt_point)));
-  CubDebugExit( cudaMemcpy(cuda_points, points, len * sizeof(struct lqt_point), cudaMemcpyHostToDevice));
+  CubDebugExit( cudaMalloc((void**)&cuda_points, len * sizeof(lqt_point)));
+  CubDebugExit( cudaMemcpy(cuda_points, points, len * sizeof(lqt_point), cudaMemcpyHostToDevice));
   CubDebugExit( cudaMemset(cuda_nodes, 0, len * sizeof(lqt_unified_node))); // debug
   nodify_kernel_unified<<<(len + (THREADS_PER_BLOCK - 1)) / THREADS_PER_BLOCK, THREADS_PER_BLOCK>>>(cuda_points, cuda_nodes, *depth, xstart, xend, ystart, yend, len);
 
-  struct lqt_unified_node* nodes = (struct lqt_unified_node*) malloc(len * sizeof(lqt_unified_node));
+  lqt_unified_node* nodes = (lqt_unified_node*) malloc(len * sizeof(lqt_unified_node));
   CubDebugExit( cudaMemcpy(nodes, cuda_nodes, len * sizeof(lqt_unified_node), cudaMemcpyDeviceToHost));
   CubDebugExit( cudaFree(cuda_nodes));
   CubDebugExit( cudaFree(cuda_points));
   free(points); ///< necessary?
 
-  struct linear_quadtree_unified lqt;
-  lqt.nodes    = nodes;
-  lqt.length   = len;
+  linear_quadtree_unified lqt;
+  lqt.nodes  = nodes;
+  lqt.length = len;
   return lqt;
 }
 
