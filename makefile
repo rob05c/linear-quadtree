@@ -1,5 +1,3 @@
-CC=gcc
-FLAGS=-O3 -std=c99 -Wall -Wpedantic -Werror -Wfatal-errors
 CUDA_CC=nvcc
 CUDA_FLAGS=-O3 -I /usr/local/cuda/include -I ../../cuda/cub
 LINK_CC=g++
@@ -13,7 +11,7 @@ lqt: lqt.o main.o lqtcuda.o nocuda.o
 main.o: 
 	$(CC_CPP) $(CPP_FLAGS) -c main.cpp -o main.o
 lqt.o:
-	$(CC) $(FLAGS) -c lqt.c -o lqt.o
+	$(CC_CPP) $(CPP_FLAGS) -c lqt.cpp -o lqt.o
 lqtcuda.o:
 	$(CUDA_CC) $(CUDA_FLAGS) -c lqt.cu -o lqtcuda.o
 nocuda.o:

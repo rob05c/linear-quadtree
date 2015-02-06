@@ -7,8 +7,8 @@
 const location_t location_t_max = ~0ULL;
 
 void lqt_delete(linear_quadtree q) {
-  free(q.locations);
-  free(q.points);
+  delete[] q.locations;
+  delete[] q.points;
 }
 
 /// @param points points to a quadtree from. Takes ownership. MUST be dynamically allocated
@@ -39,7 +39,7 @@ linear_quadtree lqt_nodify(lqt_point* points, size_t len,
   *depth = LINEAR_QUADTREE_DEPTH;
 
   linear_quadtree lqt;
-  lqt.locations = malloc(sizeof(location_t) * len);
+  lqt.locations = new location_t[len];
   memset(lqt.locations, 0, sizeof(location_t) * len);
   lqt.points = points;
   lqt.length = len;
@@ -81,7 +81,7 @@ typedef struct {
 } rs_list;
 /// @todo determine if a location pointer is faster
 void rs_list_insert(rs_list* l, const location_t location, const lqt_point* point) {
-  rs_list_node* n = (rs_list_node*)malloc(sizeof(rs_list_node));
+  rs_list_node* n = new rs_list_node();
   n->location = location;
   n->point    = *point;
   n->next     = NULL;
@@ -102,7 +102,7 @@ void rs_list_clear(rs_list* l) {
   for(rs_list_node* node = l->head; node;) {
     rs_list_node* toDelete = node;
     node = node->next;
-    free(toDelete);
+    delete toDelete;
   }
   l->head = NULL;
   l->tail = NULL;
@@ -120,10 +120,9 @@ linear_quadtree lqt_sortify(linear_quadtree lqt) {
 
   const location_t max = location_t_max; ///< @todo pass max? iterate to find?
 
-  int i;
   for(location_t n = 1; max / n > 0; n *= BASE) {
     // sort list of numbers into buckets
-    for(i = 0; i < lqt.length; ++i) {
+    for(int i = 0; i < (int)lqt.length; ++i) {
       const location_t location = lqt.locations[i];
       // replace array[i] in bucket_index with position code
       const size_t bucket_index = (location / n) % BASE;
@@ -131,7 +130,7 @@ linear_quadtree lqt_sortify(linear_quadtree lqt) {
     }
 
     // merge buckets back into list
-    for(int k = i = 0; i < BASE; rs_list_clear(&buckets[i++])) {
+    for(int k = 0, i = 0; i < BASE; rs_list_clear(&buckets[i++])) {
       for(rs_list_node* j = buckets[i].head; j != NULL; j = j->next) {
         lqt.locations[k] = j->location;
         lqt.points[k]    = j->point;
@@ -183,12 +182,12 @@ void lqt_print_nodes(linear_quadtree lqt, const bool verbose) {
 
 /// copies the tree from the source into destination.
 /// caller takes ownership of destination, and must call delete_linear_quadtree()
-/// does not free destination, if destination is an allocated quadtree. Call delete_linear_quadtree(destination) first.
+/// does not delete destination, if destination is an allocated quadtree. Call delete_linear_quadtree(destination) first.
 void lqt_copy(linear_quadtree* destination, linear_quadtree* source) {
   destination->length = source->length;
-  destination->locations = (location_t*) malloc(destination->length * sizeof(location_t));
+  destination->locations = new location_t[destination->length];
   memcpy(destination->locations, source->locations, source->length * sizeof(location_t));
-  destination->points = (lqt_point*) malloc(destination->length * sizeof(lqt_point));
+  destination->points = new lqt_point[destination->length];
   memcpy(destination->points, source->points, source->length * sizeof(lqt_point));
 }
 
@@ -197,7 +196,7 @@ void lqt_copy(linear_quadtree* destination, linear_quadtree* source) {
 ///
 
 void lqt_delete_unified(linear_quadtree_unified q) {
-  free(q.nodes);
+  delete[] q.nodes;
 }
 
 #undef ENDIANSWAP

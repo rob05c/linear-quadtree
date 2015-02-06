@@ -70,24 +70,28 @@ static inline void test_endian_2(const size_t len, const size_t threads) {
 //  unsigned int endian = (array[0] << 24) | (array[1] << 16) | (array[2] << 8) | array[3];
   printf("endian: %u\n", *iarray);
 }
+static const size_t min = 1000;
+static const size_t max = 1100;
 
-static inline void test_many(const size_t len, const size_t threads) {
-  printf("test_many\n");
-  lqt_point* points = (lqt_point*) malloc(len * sizeof(lqt_point));
-  const size_t min = 1000;
-  const size_t max = 1100;
-  printf("creating points...\n");
+/// caller takes ownership, must call delete[]
+static inline lqt_point* create_points(const size_t len) {
+  lqt_point* points = new lqt_point[len];
   for(int i = 0, end = len; i != end; ++i) {
     points[i].x = uniformFrand(min, max);
     points[i].y = uniformFrand(min, max);
     points[i].key = i;
   }
+  return points;
+}
+
+static inline void test_many(const size_t len, const size_t threads) {
+  printf("test_many\n");
+  lqt_point* points = create_points(len);
 
   {
     printf("creating nodes...\n");
     size_t depth;
-    linear_quadtree lqt = lqt_nodify(points, len, 
-                                                     min, max, min, max, &depth);
+    linear_quadtree lqt = lqt_nodify(points, len, min, max, min, max, &depth);
     printf("sorting...\n");
     lqt_sortify(lqt);
     printf("\ndone\n");
@@ -144,10 +148,8 @@ static inline void test_endian(const size_t len, const size_t threads) {
 
 static inline void test_few(const size_t len, const size_t threads) {
   printf("test_few\n");
-  lqt_point* points = (lqt_point*) malloc(len * sizeof(lqt_point));
-  const ord_t min = 0.0;
-  const ord_t max = 300.0;
   printf("creating points...\n");
+  lqt_point* points = create_points(len);
   points[0].x = 299.999;
   points[0].y = 299.999;
   points[0].key = 42;
@@ -180,22 +182,15 @@ static inline void test_few(const size_t len, const size_t threads) {
 
 }
 
-static inline void test_time(const size_t numPoints, const size_t threads) {
+static inline void test_time(const size_t len, const size_t threads) {
   printf("test_time\n");
-  lqt_point* points = (lqt_point*) malloc(sizeof(lqt_point) * numPoints);
-  const size_t min = 1000;
-  const size_t max = 1100;
   printf("creating points...\n");
-  for(int i = 0, end = numPoints; i != end; ++i) {
-    points[i].x = uniformFrand(min, max);
-    points[i].y = uniformFrand(min, max);
-    points[i].key = i;
-  }
+  lqt_point* points = create_points(len);
 
   size_t depth;
   printf("cpu nodify...\n");
   const clock_t start = clock();
-  linear_quadtree lqt = lqt_nodify(points, numPoints, 
+  linear_quadtree lqt = lqt_nodify(points, len, 
                                       min, max, min, max, &depth);
   const clock_t end = clock();
   const double elapsed_s = (end - start) / (double)CLOCKS_PER_SEC;
@@ -204,17 +199,11 @@ static inline void test_time(const size_t numPoints, const size_t threads) {
   // lqt and points not valid henceforth and hereafter.
 
   printf("creating cuda points...\n");
-  lqt_point* cuda_points = (lqt_point*) malloc(sizeof(lqt_point) * numPoints);
-  printf("creating points...\n");
-  for(int i = 0, end = numPoints; i != end; ++i) {
-    cuda_points[i].x = uniformFrand(min, max);
-    cuda_points[i].y = uniformFrand(min, max);
-    cuda_points[i].key = i;
-  }
+  lqt_point* cuda_points = create_points(len);
 
   printf("gpu nodify...\n");
   const clock_t start_cuda = clock();
-  linear_quadtree cuda_lqt = lqt_nodify_cuda(cuda_points, numPoints, 
+  linear_quadtree cuda_lqt = lqt_nodify_cuda(cuda_points, len, 
                                                 min, max, min, max, &depth);
   const clock_t end_cuda = clock();
   const double elapsed_s_cuda = (end_cuda - start_cuda) / (double)CLOCKS_PER_SEC;
@@ -224,22 +213,14 @@ static inline void test_time(const size_t numPoints, const size_t threads) {
   lqt_delete(cuda_lqt);
 }
 
-static inline void test_sorts(const size_t numPoints, const size_t threads) {
+static inline void test_sorts(const size_t len, const size_t threads) {
   printf("test_sorts\n");
-
-  lqt_point* points = (lqt_point*) malloc(numPoints * sizeof(lqt_point));
-  const size_t min = 1000;
-  const size_t max = 1100;
   printf("creating points...\n");
-  for(int i = 0, end = numPoints; i != end; ++i) {
-    points[i].x = uniformFrand(min, max);
-    points[i].y = uniformFrand(min, max);
-    points[i].key = i;
-  }
+  lqt_point* points = create_points(len);
 
   printf("creating nodes...\n");
   size_t depth;
-  linear_quadtree qt = lqt_nodify(points, numPoints, 
+  linear_quadtree qt = lqt_nodify(points, len, 
                                             min, max, min, max, &depth);
   linear_quadtree qt_cuda;
   lqt_copy(&qt_cuda, &qt);
@@ -258,21 +239,13 @@ static inline void test_sorts(const size_t numPoints, const size_t threads) {
   lqt_delete(qt_cuda);
 }
 
-static inline void test_sort_time(const size_t numPoints, const size_t threads) {
+static inline void test_sort_time(const size_t len, const size_t threads) {
   printf("test_sort_time\n");
-  lqt_point* points = (lqt_point*) malloc(sizeof(lqt_point) * numPoints);
-  const size_t min = 1000;
-  const size_t max = 1100;
   printf("creating points...\n");
-  for(int i = 0, end = numPoints; i != end; ++i) {
-    points[i].x = uniformFrand(min, max);
-    points[i].y = uniformFrand(min, max);
-    points[i].key = i;
-  }
-
+  lqt_point* points = create_points(len);
   printf("creating nodes...\n");
   size_t depth;
-  linear_quadtree qt = lqt_nodify(points, numPoints, 
+  linear_quadtree qt = lqt_nodify(points, len, 
                                      min, max, min, max, &depth);
   linear_quadtree qt_cuda;
   lqt_copy(&qt_cuda, &qt);
@@ -297,28 +270,21 @@ static inline void test_sort_time(const size_t numPoints, const size_t threads) 
   lqt_delete(qt_cuda);
 }
 
-static inline void test_unified_sorts(const size_t numPoints, const size_t threads) {
+static inline void test_unified_sorts(const size_t len, const size_t threads) {
   printf("test_unified_sorts\n");
-  lqt_point* points = (lqt_point*) malloc(sizeof(lqt_point) * numPoints);
-  const size_t min = 1000;
-  const size_t max = 1100;
   printf("creating points...\n");
-  for(int i = 0, end = numPoints; i != end; ++i) {
-    points[i].x = uniformFrand(min, max);
-    points[i].y = uniformFrand(min, max);
-    points[i].key = i;
-  }
-  lqt_point* points_cuda = (lqt_point*) malloc(numPoints * sizeof(lqt_point));
-  memcpy(points_cuda, points, numPoints * sizeof(lqt_point));
+  lqt_point* points = create_points(len);
+  lqt_point* points_cuda = new lqt_point[len];
+  memcpy(points_cuda, points, len * sizeof(lqt_point));
 
-  printf("points: %lu\n", numPoints);
+  printf("points: %lu\n", len);
 
   printf("creating quadtree...\n");
   size_t depth;
-  linear_quadtree qt = lqt_create(points, numPoints, 
+  linear_quadtree qt = lqt_create(points, len, 
                                          min, max, min, max, &depth);
   printf("creating quadtree with CUDA...\n");
-  linear_quadtree qt_cuda = lqt_create_cuda(points_cuda, numPoints, 
+  linear_quadtree qt_cuda = lqt_create_cuda(points_cuda, len, 
                                                    min, max, min, max, &depth);
   printf("nodes:\n");
   lqt_print_nodes(qt, false);
@@ -329,96 +295,74 @@ static inline void test_unified_sorts(const size_t numPoints, const size_t threa
   lqt_delete(qt_cuda);
 }
 
-static inline void test_unified(const size_t numPoints, const size_t threads) {
+static inline void test_unified(const size_t len, const size_t threads) {
   printf("test_unified\n");
-  lqt_point* points = (lqt_point*) malloc(sizeof(lqt_point) * numPoints);
-  const size_t min = 1000;
-  const size_t max = 1100;
   printf("creating points...\n");
-  for(int i = 0, end = numPoints; i != end; ++i) {
-    points[i].x = uniformFrand(min, max);
-    points[i].y = uniformFrand(min, max);
-    points[i].key = i;
-  }
-  lqt_point* points_cuda = (lqt_point*) malloc(numPoints * sizeof(lqt_point));
-  memcpy(points_cuda, points, numPoints * sizeof(lqt_point));
+  lqt_point* points = create_points(len);
+  lqt_point* points_cuda = new lqt_point[len];
+  memcpy(points_cuda, points, len * sizeof(lqt_point));
 
-  printf("points: %lu\n", numPoints);
+  printf("points: %lu\n", len);
   printf("creating quadtree...\n");
   const clock_t start = clock();
   size_t depth;
-  linear_quadtree qt = lqt_create(points, numPoints, 
+  linear_quadtree qt = lqt_create(points, len, 
                                          min, max, min, max, &depth);
   const clock_t end = clock();
   const double elapsed_s = (end - start) / (double)CLOCKS_PER_SEC;
   printf("cpu time: %fs\n", elapsed_s);
-  printf("ms per point: %f\n", 1000.0 * elapsed_s / numPoints);
+  printf("ms per point: %f\n", 1000.0 * elapsed_s / len);
 
   printf("creating quadtree with CUDA...\n");
   const clock_t start_cuda = clock();
-  linear_quadtree qt_cuda = lqt_create_cuda(points_cuda, numPoints, 
+  linear_quadtree qt_cuda = lqt_create_cuda(points_cuda, len, 
                                                    min, max, min, max, &depth);
   const clock_t end_cuda = clock();
   const double elapsed_s_cuda = (end_cuda - start_cuda) / (double)CLOCKS_PER_SEC;
   const double cuda_speedup = elapsed_s / elapsed_s_cuda;
   printf("cuda time: %fs\n", elapsed_s_cuda);
-  printf("ms per cuda point: %f\n", 1000.0 * elapsed_s_cuda / numPoints);
+  printf("ms per cuda point: %f\n", 1000.0 * elapsed_s_cuda / len);
   printf("cuda speedup: %f\n", cuda_speedup);
 
   lqt_delete(qt);
   lqt_delete(qt_cuda);
 }
 
-static inline void test_unified_cuda(const size_t numPoints, const size_t threads) {
+static inline void test_unified_cuda(const size_t len, const size_t threads) {
   printf("test_unified_cuda\n");
-  lqt_point* points = (lqt_point*) malloc(sizeof(lqt_point) * numPoints);
-  const size_t min = 1000;
-  const size_t max = 1100;
   printf("creating points...\n");
-  for(int i = 0, end = numPoints; i != end; ++i) {
-    points[i].x = uniformFrand(min, max);
-    points[i].y = uniformFrand(min, max);
-    points[i].key = i;
-  }
-
-  printf("points: %lu\n", numPoints);
+  lqt_point* points = create_points(len);
+  printf("points: %lu\n", len);
   size_t depth;
   printf("creating quadtree with CUDA...\n");
   const auto start = std::chrono::high_resolution_clock::now();
 
-  linear_quadtree qt = lqt_create_cuda(points, numPoints, min, max, min, max, &depth);
+  linear_quadtree qt = lqt_create_cuda(points, len, min, max, min, max, &depth);
 
   const auto end = std::chrono::high_resolution_clock::now();
   const auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
   std::cout << "cpu time (ms): " << elapsed_ms << std::endl;
-  printf("ms per cuda point: %f\n", (double)elapsed_ms / numPoints);
+  printf("ms per cuda point: %f\n", (double)elapsed_ms / len);
 
   lqt_delete(qt);
 }
 
-static inline void test_unified_sisd(const size_t numPoints, const size_t threads) {
+static inline void test_unified_sisd(const size_t len, const size_t threads) {
   printf("test_unified_sisd\n");
-  lqt_point* points = (lqt_point*) malloc(sizeof(lqt_point) * numPoints);
-  const size_t min = 1000;
-  const size_t max = 1100;
   printf("creating points...\n");
-  for(int i = 0, end = numPoints; i != end; ++i) {
-    points[i].x = uniformFrand(min, max);
-    points[i].y = uniformFrand(min, max);
-    points[i].key = i;
-  }
-  printf("points: %lu\n", numPoints);
+  lqt_point* points = create_points(len);
+  printf("points: %lu\n", len);
   printf("creating quadtree...\n");
 
   size_t depth;
   const auto start = std::chrono::high_resolution_clock::now();
 
-  linear_quadtree_unified qt = lqt_create_sisd(points, numPoints, min, max, min, max, &depth, threads);
+  linear_quadtree_unified qt = lqt_create_sisd(points, len, min, max, min, max, &depth, threads);
 
   const auto end = std::chrono::high_resolution_clock::now();
   const auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
   std::cout << "cpu time (ms): " << elapsed_ms << std::endl;
-  printf("ms per point: %f\n", (double)elapsed_ms / numPoints);
+  printf("ms per point: %f\n", (double)elapsed_ms / len);
 
   lqt_delete_unified(qt);
 }
@@ -443,19 +387,11 @@ create_func_t get_create_func(sort_type_e sort_type) {
   return &lqt_create_heterogeneous;
 }
 
-static inline void test_heterogeneous_withtype(const size_t numPoints, const size_t threads, const sort_type_e sort_type) {
+static inline void test_heterogeneous_withtype(const size_t len, const size_t threads, const sort_type_e sort_type) {
   printf("test_heterogeneous_%s\n", sort_type == st_tbb ? "tbbsort" : (sort_type == st_merge ? "mergesort" : "samplesort"));
-
-  lqt_point* points = (lqt_point*) malloc(sizeof(lqt_point) * numPoints);
-  const size_t min = 1000;
-  const size_t max = 1100;
   printf("creating points...\n");
-  for(int i = 0, end = numPoints; i != end; ++i) {
-    points[i].x = uniformFrand(min, max);
-    points[i].y = uniformFrand(min, max);
-    points[i].key = i;
-  }
-  printf("points: %lu\n", numPoints);
+  lqt_point* points = create_points(len);
+  printf("points: %lu\n", len);
   printf("creating quadtree...\n");
 
   create_func_t create_func = get_create_func(sort_type);
@@ -463,46 +399,38 @@ static inline void test_heterogeneous_withtype(const size_t numPoints, const siz
   size_t depth;
   const auto start = std::chrono::high_resolution_clock::now();
 
-  linear_quadtree_unified qt = create_func(points, numPoints, min, max, min, max, &depth, threads);
+  linear_quadtree_unified qt = create_func(points, len, min, max, min, max, &depth, threads);
 
   const auto end = std::chrono::high_resolution_clock::now();
   const auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
   std::cout << "cpu time (ms): " << elapsed_ms << std::endl;
-  printf("ms per point: %f\n", (double)elapsed_ms / numPoints);
+  printf("ms per point: %f\n", (double)elapsed_ms / len);
 
   lqt_delete_unified(qt);
 }
 
-static inline void test_heterogeneous(const size_t numPoints, const size_t threads) {
-  test_heterogeneous_withtype(numPoints, threads, st_tbb);
+static inline void test_heterogeneous(const size_t len, const size_t threads) {
+  test_heterogeneous_withtype(len, threads, st_tbb);
 }
 
-static inline void test_heterogeneous2(const size_t numPoints, const size_t threads) {
-  test_heterogeneous_withtype(numPoints, threads, st_merge);
+static inline void test_heterogeneous2(const size_t len, const size_t threads) {
+  test_heterogeneous_withtype(len, threads, st_merge);
 }
 
-static inline void test_heterogeneous3(const size_t numPoints, const size_t threads) {
-  test_heterogeneous_withtype(numPoints, threads, st_sample);
+static inline void test_heterogeneous3(const size_t len, const size_t threads) {
+  test_heterogeneous_withtype(len, threads, st_sample);
 }
 
 
-static inline void test_mergesort(const size_t numPoints, const size_t threads) {
+static inline void test_mergesort(const size_t len, const size_t threads) {
   printf("test_heterogeneous\n");
-
-  lqt_point* points = (lqt_point*) malloc(sizeof(lqt_point) * numPoints);
-  const size_t min = 1000;
-  const size_t max = 1100;
   printf("creating points...\n");
-  for(int i = 0, end = numPoints; i != end; ++i) {
-    points[i].x = uniformFrand(min, max);
-    points[i].y = uniformFrand(min, max);
-    points[i].key = i;
-  }
-  printf("points: %lu\n", numPoints);
+  lqt_point* points = create_points(len);
+  printf("points: %lu\n", len);
   printf("creating quadtree...\n");
 
   size_t depth;
-  linear_quadtree_unified qt = lqt_create_heterogeneous_mergesort(points, numPoints, min, max, min, max, &depth, threads);
+  linear_quadtree_unified qt = lqt_create_heterogeneous_mergesort(points, len, min, max, min, max, &depth, threads);
 
   printf("validating sort...\n");
 
