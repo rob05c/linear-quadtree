@@ -4,11 +4,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <limits.h>
-
-// nvcc is C++, not C
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <vector>
+#include <utility>
 
 typedef int key_t;
 typedef float ord_t; // ordinate. There's only one, so it's not a coordinate.
@@ -111,10 +108,12 @@ linear_quadtree_unified lqt_create_heterogeneous_samplesort(lqt_point* points, s
                                                             ord_t ystart, ord_t yend,
                                                             size_t* depth, const size_t threads);
 
+std::vector<linear_quadtree_unified> lqt_create_pipelined(std::vector< std::pair<lqt_point*, size_t> > pointses, 
+                                                          ord_t xstart, ord_t xend, 
+                                                          ord_t ystart, ord_t yend,
+                                                          size_t* depth, const size_t threads);
+
 size_t tbb_num_default_thread();
 void tbb_test_scheduler_init();
 
-#ifdef __cplusplus
-}
-#endif
 #endif

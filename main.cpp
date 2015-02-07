@@ -6,8 +6,13 @@
 #include <string.h>
 #include <iostream>
 #include <chrono>
+#include <vector>
+#include <utility>
 #include "tbb/tbb.h"
 
+using std::vector;
+using std::pair;
+using std::make_pair;
 using std::cout;
 using std::endl;
 
@@ -405,7 +410,7 @@ static inline void test_heterogeneous3(const size_t len, const size_t threads) {
 
 
 static inline void test_mergesort(const size_t len, const size_t threads) {
-  printf("test_heterogeneous\n");
+  printf("test_mergesort\n");
   printf("creating points...\n");
   lqt_point* points = create_points(len);
   printf("points: %lu\n", len);
@@ -431,7 +436,70 @@ static inline void test_mergesort(const size_t len, const size_t threads) {
   lqt_delete_unified(qt);
 }
 
+static inline void test_pipelined(const size_t len, const size_t threads) {
+  const size_t PIPELINE_LEN = 10;
+  printf("test_pipelined\n");
+  printf("creating points...\n");
+  lqt_point* points = create_points(len);
+  printf("points: %lu\n", len);
 
+  vector<pair<lqt_point*, size_t>> pointses;
+  pointses.push_back(make_pair(points, len));
+  for(size_t i = 0, end = PIPELINE_LEN; i != end; ++i) {
+    lqt_point* morepoints = new lqt_point[len];
+    memcpy(morepoints, points, len * sizeof(lqt_point));
+    pointses.push_back(make_pair(morepoints, len));
+  }
+
+  printf("creating quadtree...\n");
+
+  const auto start = std::chrono::high_resolution_clock::now();
+
+  size_t depth;
+  vector<linear_quadtree_unified> trees = lqt_create_pipelined(pointses, min, max, min, max, &depth, threads);
+
+  const auto end = std::chrono::high_resolution_clock::now();
+  const auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+  std::cout << "cpu time (ms): " << elapsed_ms << std::endl;
+  printf("ms per point: %f\n", (double)elapsed_ms / len);
+
+  for(auto&& tree : trees)
+    lqt_delete_unified(tree);
+}
+
+static inline void test_unpipelined(const size_t len, const size_t threads) {
+  const size_t PIPELINE_LEN = 10;
+  printf("test_unpipelined\n");
+  printf("creating points...\n");
+  lqt_point* points = create_points(len);
+  printf("points: %lu\n", len);
+
+  vector<pair<lqt_point*, size_t>> pointses;
+  pointses.push_back(make_pair(points, len));
+  for(size_t i = 0, end = PIPELINE_LEN; i != end; ++i) {
+    lqt_point* morepoints = new lqt_point[len];
+    memcpy(morepoints, points, len * sizeof(lqt_point));
+    pointses.push_back(make_pair(morepoints, len));
+  }
+
+  printf("creating quadtree...\n");
+
+  const auto start = std::chrono::high_resolution_clock::now();
+
+  vector<linear_quadtree> trees;
+  size_t depth;
+  for(size_t i = 0, end = PIPELINE_LEN;i != end; ++i) {
+    trees.push_back(lqt_create_cuda(pointses[i].first, pointses[i].second, min, max, min, max, &depth));
+  }
+
+  const auto end = std::chrono::high_resolution_clock::now();
+  const auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+  std::cout << "cpu time (ms): " << elapsed_ms << std::endl;
+  printf("ms per point: %f\n", (double)elapsed_ms / len);
+
+  for(auto&& tree : trees)
+    lqt_delete(tree);
+}
 
 void(*test_funcs[])(const size_t, const size_t threads) = {
   test_endian_2,
@@ -449,6 +517,8 @@ void(*test_funcs[])(const size_t, const size_t threads) = {
   test_mergesort,
   test_heterogeneous2,
   test_heterogeneous3,
+  test_pipelined,
+  test_unpipelined,
 };
 
 static const char* default_app_name = "mergesort";
@@ -469,6 +539,8 @@ const char* tests[][2] = {
   {"test_mergesort"    , "validate the parallel mergesort function performs correctly"},
   {"test_heterogeneous2", "benchmark the time to create using CUDA and sort using parallel_mergesort"},
   {"test_heterogeneous3", "benchmark the time to create using CUDA and sort using parallel_samplesort"},
+  {"test_pipelined"    , "benchmark time to create 10 pipelined trees"},
+  {"test_unpipelined"  , "benchmark time to create 10 trees without pipelineing"},
 };
 
 const size_t test_num = sizeof(tests) / (sizeof(const char*) * 2);

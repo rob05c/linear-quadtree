@@ -388,6 +388,8 @@ linear_quadtree_unified lqt_nodify_cuda_unified(lqt_point* points, size_t len,
   linear_quadtree_unified lqt;
   lqt.nodes  = nodes;
   lqt.length = len;
+
+  cudaDeviceReset();
   return lqt;
 }
 
