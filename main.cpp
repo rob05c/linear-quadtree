@@ -4,34 +4,16 @@
 #include <time.h>
 #include <math.h>
 #include <string.h>
-
 #include <iostream>
 #include <chrono>
 #include "tbb/tbb.h"
 
-/// not threadsafe
-static inline unsigned long xorshf96(void) { // period 2^96-1
-  static unsigned long x=123456789, y=362436069, z=521288629;
-
-  unsigned long t;
-  x ^= x << 16;
-  x ^= x >> 5;
-  x ^= x << 1;
-
-  t = x;
-  x = y;
-  y = z;
-  z = t ^ x ^ y;
-
-  return z;
-}
-
-/// Not threadsafe. But neither is rand().
-static inline unsigned long fast_rand(void) {return xorshf96();}
+using std::cout;
+using std::endl;
 
 // generate a uniform random between min and max exclusive
 static inline ord_t uniformFrand(const ord_t min, const ord_t max) {
-  const double r = (double)fast_rand() / RAND_MAX;
+  const double r = (double)rand() / RAND_MAX;
   return min + r * (max - min);
 }
 
