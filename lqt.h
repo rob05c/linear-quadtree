@@ -108,6 +108,8 @@ linear_quadtree_unified lqt_create_heterogeneous_samplesort(lqt_point* points, s
                                                             ord_t ystart, ord_t yend,
                                                             size_t* depth, const size_t threads);
 
+linear_quadtree_unified merge_sortify_unified(linear_quadtree_unified lqt, const size_t threads);
+
 std::vector<linear_quadtree_unified> lqt_create_pipelined(std::vector< std::pair<lqt_point*, size_t> > pointses, 
                                                           ord_t xstart, ord_t xend, 
                                                           ord_t ystart, ord_t yend,

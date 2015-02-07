@@ -486,10 +486,10 @@ static inline void test_unpipelined(const size_t len, const size_t threads) {
 
   const auto start = std::chrono::high_resolution_clock::now();
 
-  vector<linear_quadtree> trees;
+  vector<linear_quadtree_unified> trees;
   size_t depth;
   for(size_t i = 0, end = PIPELINE_LEN;i != end; ++i) {
-    trees.push_back(lqt_create_cuda(pointses[i].first, pointses[i].second, min, max, min, max, &depth));
+    trees.push_back(lqt_create_heterogeneous_mergesort(pointses[i].first, pointses[i].second, min, max, min, max, &depth, threads));
   }
 
   const auto end = std::chrono::high_resolution_clock::now();
@@ -498,7 +498,7 @@ static inline void test_unpipelined(const size_t len, const size_t threads) {
   printf("ms per point: %f\n", (double)elapsed_ms / len);
 
   for(auto&& tree : trees)
-    lqt_delete(tree);
+    lqt_delete_unified(tree);
 }
 
 void(*test_funcs[])(const size_t, const size_t threads) = {

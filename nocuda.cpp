@@ -154,32 +154,3 @@ struct rtree cuda_create_rtree_sisd(struct rtree_point* points, const size_t len
   return tree;
 }
 */
-
-vector<linear_quadtree_unified> lqt_create_pipelined(vector<pair<lqt_point*, size_t>> pointses, 
-                                                     ord_t xstart, ord_t xend, 
-                                                     ord_t ystart, ord_t yend,
-                                                     size_t* depth, const size_t threads) {
-  vector<promise<bool>> promises(pointses.size());
-  vector<future<bool>> futures;
-  for(vector<promise<bool>>::iterator i = promises.begin(), end = promises.end(); i != end; ++i)
-    futures.push_back(i->get_future());
-
-  vector<linear_quadtree_unified> trees;
-
-  tbb::task_group tasks;
-  tasks.run([&]{
-      for(size_t i = 0, end = futures.size(); i != end; ++i) {
-        futures[i].wait();
-        linear_quadtree_unified& tree = trees[i];
-        tree = merge_sortify_unified(tree, threads);
-      }
-    });
-
-  for(size_t i = 0, end = pointses.size(); i != end; ++i) {
-    trees.push_back(lqt_nodify_cuda_unified(pointses[i].first, pointses[i].second, xstart, xend, ystart, yend, depth));
-    promises[i].set_value(true);
-  }
-  tasks.wait();
-
-  return trees;
-}

@@ -4,10 +4,16 @@
 #include <time.h>
 #include <stdio.h>
 #include <stdlib.h>    
+#include <vector>
+#include <utility>
+
 #include <linux/cuda.h>
 #include <cub/cub.cuh>
 #include <cub/util_allocator.cuh>
 #include <cub/device/device_radix_sort.cuh>
+
+using std::vector;
+using std::pair;
 
 using namespace cub; // debug
 
@@ -393,3 +399,49 @@ linear_quadtree_unified lqt_nodify_cuda_unified(lqt_point* points, size_t len,
   return lqt;
 }
 
+
+
+vector<linear_quadtree_unified> lqt_create_pipelined(vector< pair<lqt_point*, size_t> > pointses, 
+                                                     ord_t xstart, ord_t xend, 
+                                                     ord_t ystart, ord_t yend,
+                                                     size_t* depth, const size_t threads) {
+  vector<linear_quadtree_unified> trees;
+
+
+  *depth = LINEAR_QUADTREE_DEPTH;
+
+  const size_t THREADS_PER_BLOCK = 512;
+
+  lqt_point*        cuda_points;
+  lqt_unified_node* cuda_nodes;
+
+  trees.push_back(lqt_nodify_cuda_unified(pointses[0].first, pointses[0].second, xstart, xend, ystart, yend, depth));
+  for(size_t i = 1, end = pointses.size() - 1; i != end; ++i) {
+    lqt_point*        points = pointses[i].first;
+    size_t            len    = pointses[i].second; 
+
+    CubDebugExit( cudaMalloc((void**)&cuda_nodes, len * sizeof(lqt_unified_node)));
+    CubDebugExit( cudaMalloc((void**)&cuda_points, len * sizeof(lqt_point)));
+    CubDebugExit( cudaMemcpy(cuda_points, points, len * sizeof(lqt_point), cudaMemcpyHostToDevice));
+    CubDebugExit( cudaMemset(cuda_nodes, 0, len * sizeof(lqt_unified_node))); // debug
+    nodify_kernel_unified<<<(len + (THREADS_PER_BLOCK - 1)) / THREADS_PER_BLOCK, THREADS_PER_BLOCK>>>(cuda_points, cuda_nodes, *depth, xstart, xend, ystart, yend, len);
+    lqt_unified_node* nodes = new lqt_unified_node[len];
+  
+    trees[i - 1] = merge_sortify_unified(trees[i - 1], threads);
+
+    CubDebugExit( cudaMemcpy(nodes, cuda_nodes, len * sizeof(lqt_unified_node), cudaMemcpyDeviceToHost));
+    CubDebugExit( cudaFree(cuda_nodes));
+    CubDebugExit( cudaFree(cuda_points));
+    cudaDeviceReset(); // debug
+    delete[] points; ///< necessary?
+
+    linear_quadtree_unified lqt;
+    lqt.nodes  = nodes;
+    lqt.length = len;
+    trees.push_back(lqt);
+  }
+
+  trees[pointses.size() - 1] = merge_sortify_unified(trees[pointses.size() - 1], threads);
+
+  return trees;
+}
