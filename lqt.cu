@@ -399,8 +399,6 @@ linear_quadtree_unified lqt_nodify_cuda_unified(lqt_point* points, size_t len,
   return lqt;
 }
 
-
-
 vector<linear_quadtree_unified> lqt_create_pipelined(vector< pair<lqt_point*, size_t> > pointses, 
                                                      ord_t xstart, ord_t xend, 
                                                      ord_t ystart, ord_t yend,

@@ -467,9 +467,9 @@ static inline void test_pipelined(const size_t len, const size_t threads) {
     lqt_delete_unified(tree);
 }
 
-static inline void test_unpipelined(const size_t len, const size_t threads) {
+static inline void test_unpipelined_heterogeneous(const size_t len, const size_t threads) {
   const size_t PIPELINE_LEN = 10;
-  printf("test_unpipelined\n");
+  printf("test_unpipelined_heterogeneous\n");
   printf("creating points...\n");
   lqt_point* points = create_points(len);
   printf("points: %lu\n", len);
@@ -501,6 +501,41 @@ static inline void test_unpipelined(const size_t len, const size_t threads) {
     lqt_delete_unified(tree);
 }
 
+static inline void test_unpipelined_cuda(const size_t len, const size_t threads) {
+  const size_t PIPELINE_LEN = 10;
+  printf("test_unpipelined_cuda\n");
+  printf("creating points...\n");
+  lqt_point* points = create_points(len);
+  printf("points: %lu\n", len);
+
+  vector<pair<lqt_point*, size_t>> pointses;
+  pointses.push_back(make_pair(points, len));
+  for(size_t i = 0, end = PIPELINE_LEN; i != end; ++i) {
+    lqt_point* morepoints = new lqt_point[len];
+    memcpy(morepoints, points, len * sizeof(lqt_point));
+    pointses.push_back(make_pair(morepoints, len));
+  }
+
+  printf("creating quadtree...\n");
+
+  const auto start = std::chrono::high_resolution_clock::now();
+
+  vector<linear_quadtree> trees;
+  size_t depth;
+  for(size_t i = 0, end = PIPELINE_LEN;i != end; ++i) {
+    trees.push_back(lqt_create_cuda(pointses[i].first, pointses[i].second, min, max, min, max, &depth));
+  }
+
+  const auto end = std::chrono::high_resolution_clock::now();
+  const auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+  std::cout << "cpu time (ms): " << elapsed_ms << std::endl;
+  printf("ms per point: %f\n", (double)elapsed_ms / len);
+
+  for(auto&& tree : trees)
+    lqt_delete(tree);
+}
+
+
 void(*test_funcs[])(const size_t, const size_t threads) = {
   test_endian_2,
   test_many,
@@ -518,7 +553,8 @@ void(*test_funcs[])(const size_t, const size_t threads) = {
   test_heterogeneous2,
   test_heterogeneous3,
   test_pipelined,
-  test_unpipelined,
+  test_unpipelined_heterogeneous,
+  test_unpipelined_cuda,
 };
 
 static const char* default_app_name = "mergesort";
@@ -540,7 +576,8 @@ const char* tests[][2] = {
   {"test_heterogeneous2", "benchmark the time to create using CUDA and sort using parallel_mergesort"},
   {"test_heterogeneous3", "benchmark the time to create using CUDA and sort using parallel_samplesort"},
   {"test_pipelined"    , "benchmark time to create 10 pipelined trees"},
-  {"test_unpipelined"  , "benchmark time to create 10 trees without pipelineing"},
+  {"test_unpipelined_heterogeneous"  , "benchmark time to create 10 trees heterogeneously without pipelining"},
+  {"test_unpipelined_cuda         "  , "benchmark time to create 10 trees with CUDA without pipelining"},
 };
 
 const size_t test_num = sizeof(tests) / (sizeof(const char*) * 2);
